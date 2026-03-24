@@ -226,6 +226,57 @@ function PropForm({ prop, owners, onSave, onClose }) {
   );
 }
 
+// ── OWNER FORM ──
+function OwnerForm({ owner, plans, onSave, onClose }) {
+  const [f, sF] = useState(owner || { name: "", email: "", phone: "", whatsapp: "", subscription: "none", subscription_end: "" });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => sF(p => ({ ...p, [k]: v }));
+
+  const save = async () => {
+    if (!f.name || !f.phone) { alert("Le nom et le téléphone sont obligatoires"); return; }
+    setSaving(true);
+    await onSave({ name: f.name, email: f.email || "", phone: f.phone, whatsapp: f.whatsapp || f.phone, subscription: f.subscription, subscription_end: f.subscription_end || null });
+    setSaving(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+        <div style={{ gridColumn: "1/-1" }}><label style={lS}>Nom complet *</label><input value={f.name} onChange={e => set("name", e.target.value)} style={iS} placeholder="Ex: Koné Ibrahim" /></div>
+        <div><label style={lS}>Téléphone *</label><input value={f.phone} onChange={e => set("phone", e.target.value)} style={iS} placeholder="+225 07 00 00 00 00" /></div>
+        <div><label style={lS}>WhatsApp</label><input value={f.whatsapp || ""} onChange={e => set("whatsapp", e.target.value)} style={iS} placeholder="+225 07 00 00 00 00" /></div>
+        <div style={{ gridColumn: "1/-1" }}><label style={lS}>Email</label><input type="email" value={f.email || ""} onChange={e => set("email", e.target.value)} style={iS} placeholder="email@exemple.com" /></div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={lS}>Plan d'abonnement</label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[{ id: "none", name: "Aucun", color: "#94a3b8" }, ...(plans || [])].map(plan => (
+            <button key={plan.id} onClick={() => set("subscription", plan.id)} style={{
+              flex: "1 1 100px", padding: "10px 12px", borderRadius: 10, cursor: "pointer", textAlign: "center",
+              border: f.subscription === plan.id ? `2px solid ${plan.color}` : "1px solid #e2e8f0",
+              background: f.subscription === plan.id ? `${plan.color}10` : "white"
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: plan.color }}>{plan.name}</div>
+              {plan.price !== undefined && <div style={{ fontSize: 11, color: "#94a3b8" }}>{plan.price > 0 ? fmt(plan.price) + "/mois" : "Gratuit"}</div>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {f.subscription !== "none" && <div style={{ marginBottom: 16 }}>
+        <label style={lS}>Date de fin d'abonnement</label>
+        <input type="date" value={f.subscription_end || ""} onChange={e => set("subscription_end", e.target.value)} style={iS} />
+      </div>}
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button onClick={onClose} style={bS}>Annuler</button>
+        <button onClick={save} disabled={saving} style={{ ...bP, opacity: saving ? 0.5 : 1 }}>{saving ? "..." : owner ? "Enregistrer" : "Créer le propriétaire"}</button>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN ──
 export default function Admin() {
   const [authed, setAuthed] = useState(false);
@@ -247,6 +298,8 @@ export default function Admin() {
   const [delType, setDT] = useState("");
   const [editingPlan, setEditPlan] = useState(null);
   const [savingS, setSS] = useState(false);
+  const [showOwnerForm, setSOF] = useState(false);
+  const [editOwner, setEO] = useState(null);
 
   const reload = useCallback(async () => {
     const p = await sbGet("properties", "order=sponsored.desc,rating.desc");
@@ -277,6 +330,7 @@ export default function Admin() {
     if (!delConfirm) return;
     if (delType === "prop") { await sbDel("properties", delConfirm.id); setProps(ps => ps.filter(x => x.id !== delConfirm.id)); }
     if (delType === "book") { await sbDel("bookings", delConfirm.id); setBookings(bs => bs.filter(x => x.id !== delConfirm.id)); }
+    if (delType === "owner") { await sbDel("owners", delConfirm.id); setOwners(os => os.filter(x => x.id !== delConfirm.id)); }
     setDC(null);
     if (online) reload();
   };
@@ -402,11 +456,22 @@ export default function Admin() {
 
         {/* Owners */}
         {page === "owners" && <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 20px" }}>Propriétaires ({owners.length})</h1>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Propriétaires ({owners.length})</h1>
+            <button onClick={() => { setEO(null); setSOF(true); }} style={bP}>+ Ajouter un propriétaire</button>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
             {ownersWC.map(o => <div key={o.id} style={{ background: "white", borderRadius: 14, padding: 18, border: "1px solid #f1f5f9" }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{o.name}</div>
-              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>{o.email} • {o.phone}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{o.name}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>{o.email} • {o.phone}</div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => { setEO(o); setSOF(true); }} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", cursor: "pointer" }}>✏️</button>
+                  <button onClick={() => { setDC(o); setDT("owner"); }} style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "5px 8px", cursor: "pointer" }}>🗑️</button>
+                </div>
+              </div>
               <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
                 <div style={{ textAlign: "center", flex: 1, background: "#f8fafc", borderRadius: 10, padding: 10 }}>
                   <div style={{ fontSize: 22, fontWeight: 800 }}>{o.propertyCount}</div>
@@ -422,6 +487,35 @@ export default function Admin() {
               </div>)}
             </div>)}
           </div>
+
+          {/* Owner Form Modal */}
+          {showOwnerForm && <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setSOF(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 16, maxWidth: 480, width: "100%", padding: 28 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editOwner ? "Modifier le propriétaire" : "Nouveau propriétaire"}</h2>
+                <button onClick={() => setSOF(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }}>✕</button>
+              </div>
+              <OwnerForm
+                owner={editOwner}
+                plans={plans}
+                onSave={async (data) => {
+                  if (editOwner?.id) {
+                    await sbPatch("owners", editOwner.id, data);
+                  } else {
+                    await sbPost("owners", data);
+                  }
+                  setSOF(false);
+                  setEO(null);
+                  if (online) reload();
+                  else {
+                    if (editOwner?.id) setOwners(os => os.map(o => o.id === editOwner.id ? { ...o, ...data } : o));
+                    else setOwners(os => [...os, { id: "new_" + Date.now(), ...data }]);
+                  }
+                }}
+                onClose={() => { setSOF(false); setEO(null); }}
+              />
+            </div>
+          </div>}
         </div>}
 
         {/* Bookings */}
@@ -530,7 +624,7 @@ export default function Admin() {
         <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 14, padding: 28, maxWidth: 380, width: "90%", textAlign: "center" }}>
           <div style={{ fontSize: 36, marginBottom: 16 }}>🗑️</div>
           <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Supprimer ?</h3>
-          <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 20px" }}>{delType === "prop" ? `« ${delConfirm.name} »` : `Réservation de ${delConfirm.guest_name}`}</p>
+          <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 20px" }}>{delType === "prop" ? `« ${delConfirm.name} »` : delType === "owner" ? `${delConfirm.name} et tous ses hébergements` : `Réservation de ${delConfirm.guest_name}`}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
             <button onClick={() => setDC(null)} style={bS}>Annuler</button>
             <button onClick={handleDel} style={{ ...bP, background: "#dc2626" }}>Supprimer</button>
