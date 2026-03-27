@@ -100,7 +100,7 @@ function Detail({ p, onClose }) {
         <div style={{ marginTop: 16 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Équipements</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(p.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 12, padding: "5px 12px", borderRadius: 8, fontWeight: 600, border: "1px solid #bbf7d0" }}>{a}</span>)}</div></div>
         {!showBook ? <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
           <button onClick={() => setSB(true)} style={{ flex: 1, background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 20px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>📅 Réserver</button>
-          <a href={`https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=Bonjour, je suis intéressé par ${p.name} sur Stays.com`} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#25D366", color: "white", padding: "14px 20px", borderRadius: 12, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}><WhatsAppIcon /> WhatsApp</a>
+          <a href={`https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=Bonjour, je suis intéressé par ${p.name} sur StaysPlace`} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#25D366", color: "white", padding: "14px 20px", borderRadius: 12, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}><WhatsAppIcon /> WhatsApp</a>
         </div> : <div style={{ marginTop: 20, background: "#f8fafc", borderRadius: 14, padding: 18, border: "1px solid #e2e8f0" }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Réservation</div>
           <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
@@ -186,7 +186,7 @@ export default function App() {
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <div onClick={() => { setPage("home"); setSelCity("all"); setSearch(""); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#FF6B00,#FF8534)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 18, fontFamily: "'Playfair Display',serif" }}>S</div>
-          <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Playfair Display',serif", color: navC }}>Stays<span style={{ color: "#FF6B00" }}>.com</span></span>
+          <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Playfair Display',serif", color: navC }}>Stays<span style={{ color: "#FF6B00" }}>Place</span></span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           {[{ l: "Accueil", p: "home" }, { l: "Hébergements", p: "listings" }, { l: "Tarifs", p: "pricing" }, { l: "FAQ", p: "faq" }, { l: "Contact", p: "contact" }].map(({ l, p }) =>
@@ -260,7 +260,7 @@ export default function App() {
       {/* CTA */}
       <div style={{ marginTop: 60, borderRadius: 20, background: "linear-gradient(135deg,#1a1a2e,#16213e)", padding: "48px 32px", textAlign: "center" }}>
         <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 800, color: "white", margin: "0 0 12px" }}>Vous êtes propriétaire ?</h3>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, maxWidth: 500, margin: "0 auto 24px" }}>Inscrivez votre résidence ou hôtel sur Stays.com</p>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, maxWidth: 500, margin: "0 auto 24px" }}>Inscrivez votre résidence ou hôtel sur StaysPlace</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => { setPage("register"); window.scrollTo(0, 0); }} style={{ background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Inscrire mon établissement</button>
           <button onClick={() => { setPage("pricing"); window.scrollTo(0, 0); }} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Voir les tarifs</button>
@@ -302,7 +302,7 @@ export default function App() {
       <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 800, margin: "0 0 32px" }}>Contactez-nous</h1>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
         {[{ i: "📞", t: "Téléphone", v: settings.phone }, { i: "📧", t: "Email", v: settings.email }, { i: "📍", t: "Adresse", v: settings.address }].map((c, i) => <div key={i} style={{ background: "white", borderRadius: 14, padding: "16px 20px", border: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 14 }}><span style={{ fontSize: 24 }}>{c.i}</span><div><div style={{ fontSize: 13, fontWeight: 700 }}>{c.t}</div><div style={{ fontSize: 14, fontWeight: 600 }}>{c.v}</div></div></div>)}
-        <a href={`https://wa.me/${settings.whatsapp}?text=Bonjour, j'ai une question sur Stays.com`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "white", padding: "14px", borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: "none" }}><WhatsAppIcon /> Écrire sur WhatsApp</a>
+        <a href={`https://wa.me/${settings.whatsapp}?text=Bonjour, j'ai une question sur StaysPlace`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "white", padding: "14px", borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: "none" }}><WhatsAppIcon /> Écrire sur WhatsApp</a>
       </div>
     </div>}
 
@@ -311,7 +311,7 @@ export default function App() {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 40, marginBottom: 32 }}>
           <div style={{ flex: "1 1 250px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#FF6B00,#FF8534)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 16 }}>S</div><span style={{ fontSize: 20, fontWeight: 800, color: "white", fontFamily: "'Playfair Display',serif" }}>Stays<span style={{ color: "#FF6B00" }}>.com</span></span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}><div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#FF6B00,#FF8534)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 16 }}>S</div><span style={{ fontSize: 20, fontWeight: 800, color: "white", fontFamily: "'Playfair Display',serif" }}>Stays<span style={{ color: "#FF6B00" }}>Place</span></span></div>
             <p style={{ fontSize: 13, lineHeight: 1.7 }}>{settings.tagline}</p>
           </div>
           <div style={{ flex: "1 1 130px" }}>
@@ -325,7 +325,7 @@ export default function App() {
             <div style={{ fontSize: 13 }}>📍 {settings.address}</div>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 20 }}><div style={{ fontSize: 12 }}>© 2026 Stays.com — Tous droits réservés.</div></div>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 20 }}><div style={{ fontSize: 12 }}>© 2026 StaysPlace — Tous droits réservés.</div></div>
       </div>
     </footer>
 
