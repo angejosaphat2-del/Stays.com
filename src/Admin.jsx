@@ -38,7 +38,7 @@ Ne mets pas de backticks markdown, juste le JSON.` }]
     });
     const d = await r.json();
     const text = d.content?.find(c => c.type === "text")?.text || "";
-    try { return JSON.parse(text.trim()); } catch { return { short: text.slice(0, 200), long: text, hashtags: "#StaysCom #CoteDIvoire" }; }
+    try { return JSON.parse(text.trim()); } catch { return { short: text.slice(0, 200), long: text, hashtags: "#StaysPlace #CoteDIvoire" }; }
   } catch { return null; }
 }
 
@@ -90,7 +90,7 @@ function Login({onLogin}){const[e,sE]=useState("");const[p,sP]=useState("");cons
   };
   return<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#1a1a2e,#16213e)",fontFamily:"'DM Sans',sans-serif",padding:20}}>
     <div style={{background:"white",borderRadius:20,padding:"40px 36px",maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-      <div style={{textAlign:"center",marginBottom:28}}><div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#FF6B00,#FF8534)",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:26,margin:"0 auto 16px"}}>S</div><h1 style={{fontSize:24,fontWeight:800,margin:"0 0 4px"}}>Stays<span style={{color:"#FF6B00"}}>.com</span></h1><p style={{color:"#94a3b8",fontSize:14,margin:0}}>Administration</p></div>
+      <div style={{textAlign:"center",marginBottom:28}}><div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#FF6B00,#FF8534)",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:26,margin:"0 auto 16px"}}>S</div><h1 style={{fontSize:24,fontWeight:800,margin:"0 0 4px"}}>Stays<span style={{color:"#FF6B00"}}>Place</span></h1><p style={{color:"#94a3b8",fontSize:14,margin:0}}>Administration</p></div>
       <div style={{marginBottom:16}}><label style={lS}>Email</label><input type="email" value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&sub()} style={iS} placeholder="admin@stays.com"/></div>
       <div style={{marginBottom:20}}><label style={lS}>Mot de passe</label><input type="password" value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&sub()} style={iS} placeholder="Min. 6 caractères"/></div>
       {err&&<div style={{background:err.includes("créé")?"#f0fdf4":"#fef2f2",color:err.includes("créé")?"#166534":"#991b1b",border:`1px solid ${err.includes("créé")?"#bbf7d0":"#fecaca"}`,padding:"10px 14px",borderRadius:10,fontSize:13,marginBottom:16,fontWeight:600}}>{err}</div>}
@@ -199,7 +199,7 @@ export default function Admin(){
   return<div style={{fontFamily:"'DM Sans','Segoe UI',sans-serif",display:"flex",minHeight:"100vh",background:"#f8fafc"}}>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <aside style={{width:220,background:"#1a1a2e",color:"white",padding:"24px 14px",display:"flex",flexDirection:"column",flexShrink:0}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:28,padding:"0 8px"}}><div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#FF6B00,#FF8534)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16}}>S</div><div><div style={{fontSize:15,fontWeight:800}}>Stays<span style={{color:"#FF6B00"}}>.com</span></div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Admin {online?"• En ligne":"• Démo"}</div></div></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:28,padding:"0 8px"}}><div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#FF6B00,#FF8534)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16}}>S</div><div><div style={{fontSize:15,fontWeight:800}}>Stays<span style={{color:"#FF6B00"}}>Place</span></div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Admin {online?"• En ligne":"• Démo"}</div></div></div>
       <nav style={{flex:1}}>{nav.map(item=><button key={item.id} onClick={()=>setPage(item.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:page===item.id?"rgba(255,107,0,0.15)":"transparent",color:page===item.id?"#FF8534":"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:2,textAlign:"left"}}><span style={{fontSize:15}}>{item.i}</span>{item.l}</button>)}</nav>
       <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",paddingTop:12}}>
         <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",padding:"0 12px",marginBottom:8}}>{userEmail}</div>
