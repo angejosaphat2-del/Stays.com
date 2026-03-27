@@ -129,6 +129,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [selType, setSelType] = useState("Tous");
   const [selCity, setSelCity] = useState("all");
+  const [selQuartier, setSelQuartier] = useState("all");
+  const [quartiers, setQuartiers] = useState([]);
   const [priceMax, setPriceMax] = useState(100000);
   const [showFilters, setShowFilters] = useState(false);
   const [favs, setFavs] = useState([]);
@@ -145,6 +147,8 @@ export default function App() {
       if (sl && Array.isArray(sl) && sl.length > 0) setSlides(sl);
       const s = await sbGet("site_settings", "");
       if (s && Array.isArray(s)) { const m = {}; s.forEach(x => { m[x.key] = x.value; }); if (Object.keys(m).length > 0) setSettings(m); }
+      const q = await sbGet("quartiers", "order=name.asc");
+      if (q && Array.isArray(q)) setQuartiers(q);
     }
     load();
   }, []);
@@ -154,10 +158,18 @@ export default function App() {
   useEffect(() => { if (page !== "home" || slides.length === 0) return; const t = setInterval(() => setCS(s => (s + 1) % slides.length), 6000); return () => clearInterval(t); }, [page, slides.length]);
 
   const toggleFav = (id) => setFavs(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+  const cityQuartiers = selCity !== "all" ? quartiers.filter(q => q.city === selCity) : [];
+  const trackView = async (p) => {
+    setSelProp(p);
+    // Track view in Supabase
+    const today = new Date().toISOString().split("T")[0];
+    await sbPost("property_stats", { property_id: p.id, date: today, views: 1 }).catch(() => {});
+  };
   const filtered = properties.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.quartier || "").toLowerCase().includes(search.toLowerCase()) && !p.city.toLowerCase().includes(search.toLowerCase())) return false;
     if (selType !== "Tous" && p.type !== selType) return false;
     if (selCity !== "all" && p.city !== selCity) return false;
+    if (selQuartier !== "all" && p.quartier !== selQuartier) return false;
     if (p.price > priceMax) return false;
     return true;
   });
@@ -232,15 +244,16 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", padding: "0 10px", color: "#94a3b8" }}><SearchIcon /></div>
           <input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", outline: "none", padding: "10px 4px", fontSize: 14, flex: 1, background: "transparent", fontFamily: "inherit" }} />
         </div>
-        <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>{CITIES.map(c => <button key={c.code} onClick={() => setSelCity(c.code)} style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", border: selCity === c.code ? "none" : "1px solid #e2e8f0", background: selCity === c.code ? "#1a1a2e" : "white", color: selCity === c.code ? "white" : "#475569" }}>{c.name}</button>)}</div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>{CITIES.map(c => <button key={c.code} onClick={() => { setSelCity(c.code); setSelQuartier("all"); }} style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", border: selCity === c.code ? "none" : "1px solid #e2e8f0", background: selCity === c.code ? "#1a1a2e" : "white", color: selCity === c.code ? "white" : "#475569" }}>{c.name}</button>)}</div>
         <button onClick={() => setShowFilters(!showFilters)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid #e2e8f0", background: showFilters ? "#1a1a2e" : "white", color: showFilters ? "white" : "#475569" }}><FilterIcon /> Filtres</button>
       </div>
       {showFilters && <div style={{ background: "white", borderRadius: 14, padding: 20, marginBottom: 24, border: "1px solid #e2e8f0", display: "flex", gap: 20, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Type</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{TYPES.map(t => <button key={t} onClick={() => setSelType(t)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selType === t ? "none" : "1px solid #e2e8f0", background: selType === t ? "linear-gradient(135deg,#FF6B00,#FF8534)" : "white", color: selType === t ? "white" : "#475569" }}>{t}</button>)}</div></div>
+        {cityQuartiers.length > 0 && <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Quartier / Commune</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><button onClick={() => setSelQuartier("all")} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selQuartier === "all" ? "none" : "1px solid #e2e8f0", background: selQuartier === "all" ? "#1a1a2e" : "white", color: selQuartier === "all" ? "white" : "#475569" }}>Tous</button>{cityQuartiers.map(q => <button key={q.id} onClick={() => setSelQuartier(q.name)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selQuartier === q.name ? "none" : "1px solid #e2e8f0", background: selQuartier === q.name ? "linear-gradient(135deg,#FF6B00,#FF8534)" : "white", color: selQuartier === q.name ? "white" : "#475569" }}>{q.name}</button>)}</div></div>}
         <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Budget max: {fmt(priceMax)}</div><input type="range" min={5000} max={100000} step={5000} value={priceMax} onChange={e => setPriceMax(Number(e.target.value))} style={{ width: "100%", accentColor: "#FF6B00" }} /></div>
       </div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 20 }}>
-        {filtered.map(p => <Card key={p.id} p={p} onSelect={setSelProp} onFav={toggleFav} isFav={favs.includes(p.id)} />)}
+        {filtered.map(p => <Card key={p.id} p={p} onSelect={trackView} onFav={toggleFav} isFav={favs.includes(p.id)} />)}
       </div>
       {filtered.length === 0 && <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}><div style={{ fontSize: 48 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 600, color: "#475569", marginTop: 8 }}>Aucun résultat</div></div>}
 
