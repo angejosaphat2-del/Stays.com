@@ -189,7 +189,7 @@ export default function App() {
           <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Playfair Display',serif", color: navC }}>Stays<span style={{ color: "#FF6B00" }}>Place</span></span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {[{ l: "Accueil", p: "home" }, { l: "Hébergements", p: "listings" }, { l: "Tarifs", p: "pricing" }, { l: "FAQ", p: "faq" }, { l: "Contact", p: "contact" }].map(({ l, p }) =>
+          {[{ l: "Accueil", p: "home" }, { l: "Hébergements", p: "listings" }].map(({ l, p }) =>
             <button key={p} onClick={() => { setPage(p); window.scrollTo(0, 0); }} style={{ background: page === p && navBg !== "transparent" ? "#f8fafc" : "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", color: navBg === "transparent" ? "rgba(255,255,255,0.9)" : page === p ? "#FF6B00" : "#64748b", padding: "8px 14px", borderRadius: 8 }}>{l}</button>
           )}
         </div>
