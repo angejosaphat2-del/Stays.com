@@ -158,6 +158,7 @@ export default function Admin(){
   const[boostProp,setBoostProp]=useState(null);const[boostWeeks,setBoostWeeks]=useState(1);
   // AI generator
   const[aiProp,setAiProp]=useState(null);const[aiResult,setAiResult]=useState(null);const[aiLoading,setAiLoading]=useState(false);
+  const[sideOpen,setSideOpen]=useState(false);
 
   const reload=useCallback(async()=>{
     const p=await sbGet("properties","order=sponsored.desc,rating.desc");
@@ -184,7 +185,8 @@ export default function Admin(){
   const activateBoost=async(prop)=>{
     const startDate=new Date().toISOString().split("T")[0];
     const endDate=new Date(Date.now()+boostWeeks*7*86400000).toISOString().split("T")[0];
-    const price=10000*boostWeeks;
+    const priceMap={1:10000,2:20000,3:25000,4:40000};
+    const price=priceMap[boostWeeks]||10000*boostWeeks;
     await sbPost("boosts",{property_id:prop.id,owner_id:prop.owner_id,start_date:startDate,end_date:endDate,weeks:boostWeeks,price_paid:price,status:"active",payment_method:"Orange Money"});
     await sbPatch("properties",prop.id,{sponsored:true,boost_active:true,boost_end:endDate});
     setBoostProp(null);setBoostWeeks(1);if(online)reload();else setProps(ps=>ps.map(x=>x.id===prop.id?{...x,sponsored:true,boost_active:true,boost_end:endDate}:x));
@@ -194,13 +196,22 @@ export default function Admin(){
 
   if(!authed)return<Login onLogin={handleLogin}/>;
 
-  const nav=[{id:"dashboard",l:"Tableau de bord",i:"📊"},{id:"properties",l:"Hébergements",i:"🏨"},{id:"owners",l:"Propriétaires",i:"👥"},{id:"boosts",l:"Boosts",i:"🚀"},{id:"tops",l:"Tops & Stats",i:"🏆"},{id:"reports",l:"Rapports",i:"📈"},{id:"bookings",l:"Réservations",i:"📅"},{id:"ai",l:"Générateur IA",i:"🤖"},{id:"subscriptions",l:"Monétisation",i:"💰"},{id:"settings",l:"Paramètres",i:"⚙️"}];
+  const nav=[{id:"dashboard",l:"Tableau de bord",i:"📊"},{id:"properties",l:"Hébergements",i:"🏨"},{id:"owners",l:"Propriétaires",i:"👥"},{id:"boosts",l:"Boosts",i:"🚀"},{id:"tops",l:"Tops & Stats",i:"🏆"},{id:"reports",l:"Rapports",i:"📈"},{id:"siteReport",l:"Évolution site",i:"📉"},{id:"bookings",l:"Réservations",i:"📅"},{id:"ai",l:"Générateur IA",i:"🤖"},{id:"subscriptions",l:"Monétisation",i:"💰"},{id:"settings",l:"Paramètres",i:"⚙️"}];
 
   return<div style={{fontFamily:"'DM Sans','Segoe UI',sans-serif",display:"flex",minHeight:"100vh",background:"#f8fafc"}}>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <aside style={{width:220,background:"#1a1a2e",color:"white",padding:"24px 14px",display:"flex",flexDirection:"column",flexShrink:0}}>
+    <style>{`@media(max-width:768px){.admin-side{position:fixed!important;z-index:999!important;transform:translateX(-100%);transition:transform 0.3s}.admin-side.open{transform:translateX(0)}.admin-main{padding:16px!important}.admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998}.admin-overlay.open{display:block}.admin-burger{display:flex!important}}`}</style>
+
+    {/* Mobile overlay */}
+    <div className={`admin-overlay${sideOpen?" open":""}`} onClick={()=>setSideOpen(false)}/>
+
+    {/* Mobile hamburger */}
+    <button className="admin-burger" onClick={()=>setSideOpen(!sideOpen)} style={{display:"none",position:"fixed",top:14,left:14,zIndex:1000,background:"#1a1a2e",border:"none",borderRadius:10,padding:"10px 12px",cursor:"pointer",color:"white",fontSize:20,alignItems:"center",justifyContent:"center"}}>{sideOpen?"✕":"☰"}</button>
+
+    {/* Sidebar */}
+    <aside className={`admin-side${sideOpen?" open":""}`} style={{width:220,background:"#1a1a2e",color:"white",padding:"24px 14px",display:"flex",flexDirection:"column",flexShrink:0,height:"100vh",position:"sticky",top:0}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:28,padding:"0 8px"}}><div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#FF6B00,#FF8534)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:16}}>S</div><div><div style={{fontSize:15,fontWeight:800}}>Stays<span style={{color:"#FF6B00"}}>Place</span></div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Admin {online?"• En ligne":"• Démo"}</div></div></div>
-      <nav style={{flex:1}}>{nav.map(item=><button key={item.id} onClick={()=>setPage(item.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:page===item.id?"rgba(255,107,0,0.15)":"transparent",color:page===item.id?"#FF8534":"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:2,textAlign:"left"}}><span style={{fontSize:15}}>{item.i}</span>{item.l}</button>)}</nav>
+      <nav style={{flex:1,overflowY:"auto"}}>{nav.map(item=><button key={item.id} onClick={()=>{setPage(item.id);setSideOpen(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:page===item.id?"rgba(255,107,0,0.15)":"transparent",color:page===item.id?"#FF8534":"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",marginBottom:2,textAlign:"left"}}><span style={{fontSize:15}}>{item.i}</span>{item.l}</button>)}</nav>
       <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",paddingTop:12}}>
         <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",padding:"0 12px",marginBottom:8}}>{userEmail}</div>
         <button onClick={reload} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 12px",borderRadius:8,border:"none",background:"transparent",color:"rgba(255,255,255,0.4)",fontSize:12,cursor:"pointer",textAlign:"left"}}>🔄 Rafraîchir</button>
@@ -208,7 +219,7 @@ export default function Admin(){
       </div>
     </aside>
 
-    <main style={{flex:1,padding:"24px 28px",overflow:"auto",maxHeight:"100vh"}}>
+    <main className="admin-main" style={{flex:1,padding:"24px 28px",overflow:"auto",maxHeight:"100vh"}}>
 
       {/* Dashboard */}
       {page==="dashboard"&&<div>
@@ -346,8 +357,58 @@ export default function Admin(){
         </div>;})}</div>
       </div>}
 
+      {/* Site Evolution Report */}
+      {page==="siteReport"&&<div>
+        <h1 style={{fontSize:22,fontWeight:800,margin:"0 0 8px"}}>📉 Évolution du site</h1>
+        <p style={{color:"#94a3b8",fontSize:14,margin:"0 0 20px"}}>Vue d'ensemble de la croissance de Stays Place</p>
+        <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:24}}>
+          <Stat label="Hébergements total" value={properties.length} sub={`${properties.filter(p=>p.status==="active").length} actifs • ${properties.filter(p=>p.status==="pending").length} en attente`}/>
+          <Stat label="Propriétaires" value={owners.length} sub={`${owners.filter(o=>o.subscription&&o.subscription!=="none").length} abonnés`} color="#7C3AED"/>
+          <Stat label="Villes couvertes" value={[...new Set(properties.map(p=>p.city))].length} color="#0284c7"/>
+          <Stat label="Réservations total" value={bookings.length} sub={`${bookings.filter(b=>b.status==="confirmed").length} confirmées`} color="#0C6E3D"/>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
+          {/* Revenue summary */}
+          <div style={{background:"white",borderRadius:14,padding:20,border:"1px solid #f1f5f9"}}>
+            <div style={{fontSize:16,fontWeight:700,marginBottom:14}}>💰 Revenus</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Abonnements/mois</span><span style={{fontWeight:800,color:"#0C6E3D"}}>{fmt(totalSub)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Boosts actifs</span><span style={{fontWeight:800,color:"#F59E0B"}}>{fmt(boostRevenue)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Réservations confirmées</span><span style={{fontWeight:800,color:"#0284c7"}}>{fmt(bookings.filter(b=>b.status==="confirmed").reduce((s,b)=>s+b.total,0))}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",background:"#f8fafc",borderRadius:10,padding:"10px 12px",marginTop:4}}><span style={{fontWeight:700}}>Total revenus/mois</span><span style={{fontWeight:800,color:"#7C3AED",fontSize:18}}>{fmt(totalSub+boostRevenue)}</span></div>
+            </div>
+          </div>
+
+          {/* Site metrics */}
+          <div style={{background:"white",borderRadius:14,padding:20,border:"1px solid #f1f5f9"}}>
+            <div style={{fontSize:16,fontWeight:700,marginBottom:14}}>📊 Métriques du site</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Total vues</span><span style={{fontWeight:800,color:"#0284c7"}}>{properties.reduce((s,p)=>s+(p.total_views||0),0)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Total clics</span><span style={{fontWeight:800,color:"#7C3AED"}}>{properties.reduce((s,p)=>s+(p.total_clicks||0),0)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Biens sponsorisés</span><span style={{fontWeight:800,color:"#F59E0B"}}>{properties.filter(p=>p.sponsored).length}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f8fafc"}}><span style={{color:"#64748b"}}>Taux de conversion global</span><span style={{fontWeight:800,color:"#0C6E3D"}}>{properties.reduce((s,p)=>s+(p.total_views||0),0)>0?((bookings.filter(b=>b.status==="confirmed").length/properties.reduce((s,p)=>s+(p.total_views||0),0))*100).toFixed(2):"0"}%</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* By city */}
+        <h2 style={{fontSize:16,fontWeight:700,margin:"0 0 14px"}}>🏙️ Répartition par ville</h2>
+        <div style={{background:"white",borderRadius:14,border:"1px solid #f1f5f9",overflow:"auto",marginBottom:24}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{background:"#f8fafc",textAlign:"left"}}><th style={{padding:"10px 14px",fontWeight:600,color:"#64748b"}}>Ville</th><th style={{padding:"10px 14px",fontWeight:600,color:"#64748b"}}>Hébergements</th><th style={{padding:"10px 14px",fontWeight:600,color:"#64748b"}}>Propriétaires</th><th style={{padding:"10px 14px",fontWeight:600,color:"#64748b"}}>Vues</th><th style={{padding:"10px 14px",fontWeight:600,color:"#64748b"}}>Réservations</th></tr></thead>
+          <tbody>{[...new Set(properties.map(p=>p.city))].map(city=>{const cityProps=properties.filter(p=>p.city===city);const cityOwnerIds=[...new Set(cityProps.map(p=>p.owner_id).filter(Boolean))];const cityViews=cityProps.reduce((s,p)=>s+(p.total_views||0),0);const cityBooks=bookings.filter(b=>cityProps.some(p=>p.id===b.property_id)&&b.status==="confirmed").length;return<tr key={city} style={{borderTop:"1px solid #f1f5f9"}}><td style={{padding:"10px 14px",fontWeight:700}}>{city}</td><td style={{padding:"10px 14px"}}>{cityProps.length}</td><td style={{padding:"10px 14px"}}>{cityOwnerIds.length}</td><td style={{padding:"10px 14px",fontWeight:700,color:"#0284c7"}}>{cityViews}</td><td style={{padding:"10px 14px",fontWeight:700,color:"#0C6E3D"}}>{cityBooks}</td></tr>;})}</tbody></table>
+        </div>
+
+        {/* Subscriptions breakdown */}
+        <h2 style={{fontSize:16,fontWeight:700,margin:"0 0 14px"}}>📋 Abonnements</h2>
+        <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+          {plans.map(plan=>{const count=owners.filter(o=>o.subscription===plan.id).length;return<div key={plan.id} style={{flex:"1 1 180px",background:"white",borderRadius:14,padding:18,border:`1px solid ${plan.color}20`,position:"relative"}}><div style={{position:"absolute",top:0,left:0,right:0,height:4,background:plan.color,borderRadius:"14px 14px 0 0"}}/><div style={{fontSize:15,fontWeight:800,color:plan.color,marginTop:4}}>{plan.name}</div><div style={{fontSize:28,fontWeight:800,marginTop:8}}>{count}</div><div style={{fontSize:12,color:"#94a3b8"}}>propriétaire{count>1?"s":""} • {fmt(plan.price*count)}/mois</div></div>;})}
+          <div style={{flex:"1 1 180px",background:"white",borderRadius:14,padding:18,border:"1px solid #e2e8f0"}}><div style={{fontSize:15,fontWeight:800,color:"#94a3b8",marginTop:4}}>Sans abonnement</div><div style={{fontSize:28,fontWeight:800,marginTop:8}}>{owners.filter(o=>!o.subscription||o.subscription==="none").length}</div><div style={{fontSize:12,color:"#94a3b8"}}>propriétaires</div></div>
+        </div>
+      </div>}
+
       {/* Settings */}
-      {/* Reports */}
+      {page==="settings"&&<div><h1 style={{fontSize:22,fontWeight:800,margin:"0 0 20px"}}>⚙️ Paramètres</h1><div style={{background:"white",borderRadius:14,padding:24,border:"1px solid #f1f5f9",maxWidth:500}}>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label style={lS}>{l}</label><input value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))} style={iS}/></div>)}<button onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS} style={{...bP,opacity:savingS?0.5:1}}>{savingS?"...":"Sauvegarder"}</button></div></div>}
       {page==="reports"&&<div>
         <h1 style={{fontSize:22,fontWeight:800,margin:"0 0 8px"}}>📈 Rapports par hébergement</h1>
         <p style={{color:"#94a3b8",fontSize:14,margin:"0 0 20px"}}>Statistiques détaillées de visibilité et performance</p>
@@ -391,19 +452,26 @@ export default function Admin(){
         </div>
       </div>}
 
-      {page==="settings"&&<div><h1 style={{fontSize:22,fontWeight:800,margin:"0 0 20px"}}>⚙️ Paramètres</h1><div style={{background:"white",borderRadius:14,padding:24,border:"1px solid #f1f5f9",maxWidth:500}}>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label style={lS}>{l}</label><input value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))} style={iS}/></div>)}<button onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS} style={{...bP,opacity:savingS?0.5:1}}>{savingS?"...":"Sauvegarder"}</button></div></div>}
     </main>
 
     {showForm&&<PropForm prop={editProp} owners={owners} onSave={()=>{setSF(false);setEP(null);if(online)reload();}} onClose={()=>{setSF(false);setEP(null);}}/>}
 
     {/* Boost Modal */}
-    {boostProp&&<div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setBoostProp(null)}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:16,padding:28,maxWidth:400,width:"90%"}}>
+    {boostProp&&<div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setBoostProp(null)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:16,padding:28,maxWidth:500,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
         <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800}}>🚀 Booster « {boostProp.name} »</h3>
-        <p style={{color:"#64748b",fontSize:13,margin:"0 0 16px"}}>L'annonce sera mise en avant sur le site et les réseaux sociaux.</p>
-        <label style={lS}>Durée du boost</label>
-        <div style={{display:"flex",gap:8,marginBottom:16}}>
-          {[{w:1,p:10000,l:"1 semaine"},{w:2,p:20000,l:"2 semaines"},{w:3,p:25000,l:"3 semaines (promo)"}].map(({w,p,l})=><button key={w} onClick={()=>setBoostWeeks(w)} style={{flex:1,padding:"12px 8px",borderRadius:10,cursor:"pointer",textAlign:"center",border:boostWeeks===w?"2px solid #F59E0B":"1px solid #e2e8f0",background:boostWeeks===w?"#FFFBEB":"white"}}><div style={{fontSize:13,fontWeight:700,color:boostWeeks===w?"#D97706":"#475569"}}>{l}</div><div style={{fontSize:16,fontWeight:800,marginTop:4}}>{fmt(p)}</div></button>)}
+        <p style={{color:"#64748b",fontSize:13,margin:"0 0 16px"}}>Choisissez le type de boost pour mettre en avant cette annonce.</p>
+        <label style={lS}>Type de boost</label>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+          {[
+            {w:1,p:10000,l:"Boost Standard",d:"1 semaine — Badge sponsorisé + haut du site",color:"#F59E0B"},
+            {w:2,p:20000,l:"Boost Premium",d:"2 semaines — Sponsorisé + carrousel publicitaire",color:"#FF6B00"},
+            {w:3,p:25000,l:"Boost Ultra (promo)",d:"3 semaines — Tout inclus + réseaux sociaux + top priorité",color:"#7C3AED"},
+            {w:4,p:40000,l:"Boost Mensuel",d:"4 semaines — Visibilité maximale tout le mois",color:"#0C6E3D"},
+          ].map(({w,p,l,d,color})=><button key={w} onClick={()=>setBoostWeeks(w)} style={{padding:"14px 16px",borderRadius:12,cursor:"pointer",textAlign:"left",border:boostWeeks===w?`2px solid ${color}`:"1px solid #e2e8f0",background:boostWeeks===w?`${color}08`:"white",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+            <div><div style={{fontSize:14,fontWeight:700,color:boostWeeks===w?color:"#1a1a2e"}}>{l}</div><div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{d}</div></div>
+            <div style={{fontSize:18,fontWeight:800,color,whiteSpace:"nowrap"}}>{fmt(p)}</div>
+          </button>)}
         </div>
         <div style={{display:"flex",gap:10}}><button onClick={()=>setBoostProp(null)} style={bS}>Annuler</button><button onClick={()=>activateBoost(boostProp)} style={{...bP,flex:1,justifyContent:"center"}}>🚀 Activer le boost</button></div>
       </div>
