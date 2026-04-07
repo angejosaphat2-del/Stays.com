@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Bloquer l'admin des robots
+Disallow: /admin
+
+Sitemap: https://staysplace.com/sitemap.xml
