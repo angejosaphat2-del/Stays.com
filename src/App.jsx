@@ -11,33 +11,31 @@ const TYPES = ["Tous", "Résidence", "Hôtel", "Villa"];
 
 function fmt(p) { return (p || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA"; }
 
-// Icons
 const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const MapPinIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 const StarIcon = ({ filled }) => <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "#F59E0B" : "none"} stroke="#F59E0B" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 const HeartIcon = ({ filled }) => <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "#EF4444" : "none"} stroke={filled ? "#EF4444" : "white"} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
 const WhatsAppIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>;
-const PhoneIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 const GlobeIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
 const FilterIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+const MenuIcon = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+const CloseIcon = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 
-// Demo data in case Supabase is unreachable
 const DEMO = [
-  { id: "d1", name: "Résidence Le Palmier d'Or", type: "Résidence", quartier: "Cocody", city: "Abidjan", price: 35000, rating: 4.7, reviews: 134, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop","https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Climatisation","Piscine","Restaurant"], description: "Résidence haut standing à Cocody avec vue sur la lagune.", whatsapp: "+2250700000001" },
-  { id: "d2", name: "Hôtel Ivoire Premium", type: "Hôtel", quartier: "Plateau", city: "Abidjan", price: 65000, rating: 4.9, reviews: 287, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Climatisation","Piscine","Spa"], description: "Hôtel 5 étoiles au cœur du Plateau.", whatsapp: "+2250700000002" },
-  { id: "d3", name: "Hôtel Atlantic Beach", type: "Hôtel", quartier: "Bardot", city: "San Pedro", price: 45000, rating: 4.9, reviews: 156, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine","Plage privée","Spa"], description: "Hôtel de luxe en bord de mer.", whatsapp: "+2250700000005" },
-  { id: "d4", name: "Hôtel Président", type: "Hôtel", quartier: "Centre", city: "Yamoussoukro", price: 40000, rating: 4.6, reviews: 98, sponsored: false, status: "active", image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine","Restaurant"], description: "Hôtel de référence de la capitale.", whatsapp: "+2250700000009" },
-  { id: "d5", name: "Villa Riviera Golf", type: "Villa", quartier: "Riviera Golf", city: "Abidjan", price: 85000, rating: 4.8, reviews: 45, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine privée","Chef privé","Jardin"], description: "Villa de luxe avec piscine privée.", whatsapp: "+2250700000004" },
-  { id: "d6", name: "Hôtel La Plage", type: "Hôtel", quartier: "Bord de mer", city: "Grand-Bassam", price: 38000, rating: 4.7, reviews: 143, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Plage privée","Restaurant","Piscine"], description: "Face à l'océan, ville historique UNESCO.", whatsapp: "+2250700000012" },
+  { id: "d1", name: "Résidence Le Palmier d'Or", type: "Résidence", quartier: "Cocody", city: "Abidjan", price: 35000, rating: 4.7, reviews: 134, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop","https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Climatisation","Piscine","Restaurant"], description: "Résidence haut standing à Cocody avec vue sur la lagune.", whatsapp: "+2250787450832" },
+  { id: "d2", name: "Hôtel Ivoire Premium", type: "Hôtel", quartier: "Plateau", city: "Abidjan", price: 65000, rating: 4.9, reviews: 287, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Climatisation","Piscine","Spa"], description: "Hôtel 5 étoiles au cœur du Plateau.", whatsapp: "+2250787450832" },
+  { id: "d3", name: "Hôtel Atlantic Beach", type: "Hôtel", quartier: "Bardot", city: "San Pedro", price: 45000, rating: 4.9, reviews: 156, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine","Plage privée","Spa"], description: "Hôtel de luxe en bord de mer.", whatsapp: "+2250787450832" },
+  { id: "d4", name: "Hôtel Président", type: "Hôtel", quartier: "Centre", city: "Yamoussoukro", price: 40000, rating: 4.6, reviews: 98, sponsored: false, status: "active", image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine","Restaurant"], description: "Hôtel de référence de la capitale.", whatsapp: "+2250787450832" },
+  { id: "d5", name: "Villa Riviera Golf", type: "Villa", quartier: "Riviera Golf", city: "Abidjan", price: 85000, rating: 4.8, reviews: 45, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Piscine privée","Chef privé","Jardin"], description: "Villa de luxe avec piscine privée.", whatsapp: "+2250787450832" },
+  { id: "d6", name: "Hôtel La Plage", type: "Hôtel", quartier: "Bord de mer", city: "Grand-Bassam", price: 38000, rating: 4.7, reviews: 143, sponsored: true, status: "active", image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop", images: ["https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop"], amenities: ["Wi-Fi","Plage privée","Restaurant","Piscine"], description: "Face à l'océan, ville historique UNESCO.", whatsapp: "+2250787450832" },
 ];
 
 const DEMO_SLIDES = [
-  { id: "s1", type: "brand", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1400&h=900&fit=crop", title: "Votre séjour idéal,", title_highlight: "partout en Côte d'Ivoire", subtitle: "Résidences, hôtels et villas. Réservez en ligne avec Mobile Money.", badge: "N°1 DE L'HÉBERGEMENT EN CÔTE D'IVOIRE" },
+  { id: "s1", type: "brand", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1400&h=900&fit=crop", title: "Votre séjour idéal,", title_highlight: "partout en Côte d'Ivoire", subtitle: "Résidences, hôtels et villas. Trouvez et contactez directement via WhatsApp.", badge: "N°1 DE L'HÉBERGEMENT EN CÔTE D'IVOIRE" },
   { id: "s2", type: "ad", image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1400&h=900&fit=crop", property_name: "Hôtel Atlantic Beach", property_city: "San Pedro", property_price: "45 000 FCFA/nuit", tagline: "Luxe en bord de mer — Spa, piscine & plage privée", badge: "SPONSORISÉ" },
   { id: "s3", type: "ad", image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1400&h=900&fit=crop", property_name: "Villa Riviera Golf", property_city: "Abidjan", property_price: "85 000 FCFA/nuit", tagline: "Villa de luxe — Piscine privée & chef sur demande", badge: "EXCLUSIF" },
 ];
 
-// Card
 function Card({ p, onSelect, onFav, isFav }) {
   const [h, sH] = useState(false);
   return <div onClick={() => onSelect(p)} style={{ cursor: "pointer", borderRadius: 16, overflow: "hidden", background: "white", boxShadow: h ? "0 12px 32px rgba(0,0,0,0.12)" : "0 1px 8px rgba(0,0,0,0.08)", transform: h ? "translateY(-4px)" : "none", transition: "all 0.3s" }} onMouseEnter={() => sH(true)} onMouseLeave={() => sH(false)}>
@@ -54,9 +52,9 @@ function Card({ p, onSelect, onFav, isFav }) {
     <div style={{ padding: "14px 16px 16px" }}>
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{p.name}</h3>
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, color: "#64748b", fontSize: 13 }}><MapPinIcon /> {p.quartier}, {p.city}</div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ display: "flex", gap: 1 }}>{[1, 2, 3, 4, 5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div>
+          <div style={{ display: "flex", gap: 1 }}>{[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div>
           <span style={{ fontSize: 13, fontWeight: 700 }}>{p.rating}</span>
           <span style={{ fontSize: 12, color: "#94a3b8" }}>({p.reviews})</span>
         </div>
@@ -65,25 +63,12 @@ function Card({ p, onSelect, onFav, isFav }) {
   </div>;
 }
 
-// Detail Modal
 function Detail({ p, onClose, rooms: allRooms }) {
   const [ii, sII] = useState(0);
-  const [showBook, setSB] = useState(false);
-  const [cIn, sCI] = useState("");
-  const [cOut, sCO] = useState("");
-  const [gName, sGN] = useState("");
-  const [gPhone, sGP] = useState("");
-  const [gEmail, sGE] = useState("");
-  const [ok, sOk] = useState(false);
   const imgs = p.images?.length ? p.images : [p.image];
-  const nights = cIn && cOut ? Math.max(1, Math.ceil((new Date(cOut) - new Date(cIn)) / 86400000)) : 0;
   const propRooms = allRooms.filter(r => r.property_id === p.id);
-
-  const book = async () => {
-    if (!nights || !gName || !gPhone) return;
-    await sbPost("bookings", { property_id: p.id, guest_name: gName, guest_phone: gPhone, guest_email: gEmail, check_in: cIn, check_out: cOut, nights, total: p.price * nights, status: "pending", payment_method: "Orange Money" });
-    sOk(true); setTimeout(() => sOk(false), 4000);
-  };
+  const waMsg = encodeURIComponent(`Bonjour, je suis intéressé par ${p.name} sur StaysPlace. Pouvez-vous me donner plus d'informations ?`);
+  const waLink = `https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=${waMsg}`;
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
     <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
@@ -99,40 +84,32 @@ function Detail({ p, onClose, rooms: allRooms }) {
           <div><h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{p.name}</h2><div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#64748b", fontSize: 14 }}><MapPinIcon /> {p.quartier}, {p.city}</div></div>
           <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#0C6E3D" }}>{fmt(p.price)}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>par nuit</div></div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}><div style={{ display: "flex", gap: 1 }}>{[1, 2, 3, 4, 5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div><span style={{ fontWeight: 700 }}>{p.rating}</span><span style={{ color: "#94a3b8", fontSize: 13 }}>• {p.reviews} avis</span></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}><div style={{ display: "flex", gap: 1 }}>{[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div><span style={{ fontWeight: 700 }}>{p.rating}</span><span style={{ color: "#94a3b8", fontSize: 13 }}>• {p.reviews} avis</span></div>
         <p style={{ color: "#475569", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{p.description}</p>
         <div style={{ marginTop: 16 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Équipements</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(p.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 12, padding: "5px 12px", borderRadius: 8, fontWeight: 600, border: "1px solid #bbf7d0" }}>{a}</span>)}</div></div>
-        {p.room_type && p.room_type !== "standard" && <div style={{ marginTop: 12 }}><span style={{ background: "#f0f9ff", color: "#0284c7", fontSize: 12, padding: "5px 12px", borderRadius: 8, fontWeight: 600, border: "1px solid #bae6fd" }}>{p.room_type}</span></div>}
-        {propRooms.length > 0 && <div style={{ marginTop: 20 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>Chambres disponibles</div>{propRooms.map(r => <div key={r.id} style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 8, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>{r.room_type && <span style={{ fontSize: 11, color: "#0284c7" }}>{r.room_type}</span>}{r.description && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{r.description}</div>}<div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>{(r.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 10, padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>{a}</span>)}</div></div><div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#0C6E3D" }}>{fmt(r.price)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>par nuit · {r.capacity} pers.</div></div></div>{r.images?.length > 0 && <div style={{ display: "flex", gap: 6, marginTop: 8, overflowX: "auto" }}>{r.images.map((img, i) => <img key={i} src={img} alt="" style={{ width: 80, height: 55, borderRadius: 6, objectFit: "cover" }} />)}</div>}</div>)}</div>}
-        {!showBook ? <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-          <button onClick={() => setSB(true)} style={{ flex: 1, background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 20px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>📅 Réserver</button>
-          <a href={`https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=Bonjour, je suis intéressé par ${p.name} sur StaysPlace`} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#25D366", color: "white", padding: "14px 20px", borderRadius: 12, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}><WhatsAppIcon /> WhatsApp</a>
-        </div> : <div style={{ marginTop: 20, background: "#f8fafc", borderRadius: 14, padding: 18, border: "1px solid #e2e8f0" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Réservation</div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}><div style={{ flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Votre nom *</label><input value={gName} onChange={e => sGN(e.target.value)} placeholder="Nom complet" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></div><div style={{ flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Téléphone *</label><input value={gPhone} onChange={e => sGP(e.target.value)} placeholder="+225 07..." style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></div></div>
-          <div style={{ marginBottom: 10 }}><label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Email (optionnel)</label><input type="email" value={gEmail} onChange={e => sGE(e.target.value)} placeholder="email@exemple.com" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Arrivée</label><input type="date" value={cIn} onChange={e => sCI(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></div>
-            <div style={{ flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Départ</label><input type="date" value={cOut} onChange={e => sCO(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></div>
-          </div>
-          {nights > 0 && <div style={{ background: "white", borderRadius: 10, padding: 12, marginBottom: 12, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600 }}>Total ({nights} nuit{nights > 1 ? "s" : ""})</span><span style={{ fontWeight: 800, color: "#0C6E3D", fontSize: 16 }}>{fmt(p.price * nights)}</span></div></div>}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setSB(false)} style={{ flex: 1, background: "white", color: "#64748b", border: "1px solid #e2e8f0", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Annuler</button>
-            <button onClick={book} style={{ flex: 2, background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Payer avec Mobile Money</button>
-          </div>
-          {ok && <div style={{ marginTop: 12, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12, fontSize: 13, color: "#166534", fontWeight: 600 }}>✅ Demande envoyée ! Confirmation par SMS.</div>}
-        </div>}
+        {propRooms.length > 0 && <div style={{ marginTop: 20 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>Chambres disponibles</div>{propRooms.map(r => <div key={r.id} style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 8, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>{r.description && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{r.description}</div>}<div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>{(r.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 10, padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>{a}</span>)}</div></div><div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#0C6E3D" }}>{fmt(r.price)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>par nuit · {r.capacity} pers.</div></div></div></div>)}</div>}
+
+        {/* Bannière info contact */}
+        <div style={{ marginTop: 20, background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#92400e" }}>
+          💬 Pour vérifier la disponibilité et obtenir les détails, contactez directement l'établissement via WhatsApp.
+        </div>
+
+        {/* Bouton WhatsApp uniquement */}
+        <div style={{ marginTop: 14 }}>
+          <a href={waLink} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#25D366", color: "white", padding: "16px 20px", borderRadius: 12, fontSize: 16, fontWeight: 700, textDecoration: "none" }}>
+            <WhatsAppIcon /> Contacter via WhatsApp
+          </a>
+        </div>
       </div>
     </div>
   </div>;
 }
 
-// Main App
 export default function App() {
   const [page, setPage] = useState("home");
   const [properties, setProperties] = useState(DEMO);
   const [slides, setSlides] = useState(DEMO_SLIDES);
-  const [settings, setSettings] = useState({ phone: "+225 07 00 00 00 00", email: "contact@stays.com", whatsapp: "+22507000000", address: "Abidjan, Côte d'Ivoire", tagline: "La plateforme N°1 de réservation d'hébergements en Côte d'Ivoire." });
+  const [settings, setSettings] = useState({ phone: "+225 07 87 45 08 32", email: "contact@staysplace.com", whatsapp: "2250787450832", address: "Abidjan, Côte d'Ivoire", tagline: "La plateforme N°1 de réservation d'hébergements en Côte d'Ivoire." });
   const [selProp, setSelProp] = useState(null);
   const [search, setSearch] = useState("");
   const [selType, setSelType] = useState("Tous");
@@ -149,6 +126,7 @@ export default function App() {
   const [heroLoaded, setHL] = useState(false);
   const [scrolled, setSc] = useState(false);
   const [curSlide, setCS] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -171,7 +149,8 @@ export default function App() {
 
   useEffect(() => { setTimeout(() => setHL(true), 100); }, []);
   useEffect(() => { const h = () => setSc(window.scrollY > 60); window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h); }, []);
-  useEffect(() => { if (page !== "home" || slides.length === 0) return; const t = setInterval(() => setCS(s => (s + 1) % slides.length), 6000); return () => clearInterval(t); }, [page, slides.length]);
+  // Carousel toutes les 10 secondes
+  useEffect(() => { if (page !== "home" || slides.length === 0) return; const t = setInterval(() => setCS(s => (s + 1) % slides.length), 10000); return () => clearInterval(t); }, [page, slides.length]);
 
   const toggleFav = (id) => setFavs(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
   const cityQuartiers = selCity !== "all" ? quartiers.filter(q => q.city === selCity) : [];
@@ -196,6 +175,9 @@ export default function App() {
   const curS = slides[curSlide] || {};
   const navBg = page === "home" && !scrolled ? "transparent" : "rgba(255,255,255,0.97)";
   const navC = page === "home" && !scrolled ? "white" : "#1a1a2e";
+  const navLinks = [{ l: "Accueil", p: "home" }, { l: "Hébergements", p: "listings" }, { l: "Tarifs", p: "pricing" }, { l: "FAQ", p: "faq" }, { l: "Contact", p: "contact" }];
+
+  const navigate = (p) => { setPage(p); window.scrollTo(0, 0); setMenuOpen(false); };
 
   return <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif", background: "#FAFAF8", minHeight: "100vh", color: "#1a1a2e" }}>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
@@ -203,17 +185,46 @@ export default function App() {
     {/* Nav */}
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 900, background: navBg, backdropFilter: "blur(20px)", borderBottom: navBg === "transparent" ? "none" : "1px solid rgba(0,0,0,0.06)", transition: "all 0.4s", padding: "0 24px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div onClick={() => { setPage("home"); setSelCity("all"); setSearch(""); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <div onClick={() => navigate("home")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#FF6B00,#FF8534)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 18, fontFamily: "'Playfair Display',serif" }}>S</div>
           <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Playfair Display',serif", color: navC }}>Stays<span style={{ color: "#FF6B00" }}>Place</span></span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {[{ l: "Accueil", p: "home" }, { l: "Hébergements", p: "listings" }].map(({ l, p }) =>
-            <button key={p} onClick={() => { setPage(p); window.scrollTo(0, 0); }} style={{ background: page === p && navBg !== "transparent" ? "#f8fafc" : "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", color: navBg === "transparent" ? "rgba(255,255,255,0.9)" : page === p ? "#FF6B00" : "#64748b", padding: "8px 14px", borderRadius: 8 }}>{l}</button>
+
+        {/* Desktop nav */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, "@media(max-width:640px)": { display: "none" } }}>
+          {navLinks.map(({ l, p }) =>
+            <button key={p} onClick={() => navigate(p)} style={{ background: page === p && navBg !== "transparent" ? "#f8fafc" : "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", color: navBg === "transparent" ? "rgba(255,255,255,0.9)" : page === p ? "#FF6B00" : "#64748b", padding: "8px 14px", borderRadius: 8 }}>{l}</button>
           )}
         </div>
+
+        {/* Hamburger mobile */}
+        <button onClick={() => setMenuOpen(!menuOpen)} style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: navC, padding: 4, "@media(max-width:768px)": { display: "flex" } }}
+          className="mobile-menu-btn">
+          {menuOpen ? <CloseIcon /> : <MenuIcon />}
+        </button>
       </div>
+
+      {/* Mobile menu dropdown */}
+      {menuOpen && <div style={{ background: "white", borderTop: "1px solid #f1f5f9", padding: "12px 0" }}>
+        {navLinks.map(({ l, p }) =>
+          <button key={p} onClick={() => navigate(p)} style={{ display: "block", width: "100%", textAlign: "left", background: page === p ? "#fff7ed" : "none", border: "none", fontSize: 15, fontWeight: page === p ? 700 : 500, cursor: "pointer", color: page === p ? "#FF6B00" : "#1a1a2e", padding: "12px 24px" }}>{l}</button>
+        )}
+        <div style={{ margin: "8px 16px 4px" }}>
+          <a href={`https://wa.me/${settings.whatsapp}?text=Bonjour StaysPlace`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "white", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: "none" }}><WhatsAppIcon /> WhatsApp</a>
+        </div>
+      </div>}
     </nav>
+
+    {/* CSS pour hamburger */}
+    <style>{`
+      @media (max-width: 768px) {
+        .mobile-menu-btn { display: flex !important; align-items: center; }
+        .desktop-nav { display: none !important; }
+      }
+      @media (min-width: 769px) {
+        .mobile-menu-btn { display: none !important; }
+      }
+    `}</style>
 
     {/* Hero Carousel */}
     {page === "home" && <div style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -224,10 +235,10 @@ export default function App() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(10px)", borderRadius: 30, padding: "6px 18px", fontSize: 13, color: "white", fontWeight: 700, marginBottom: 20, border: "1px solid rgba(255,255,255,0.2)", letterSpacing: 1 }}><GlobeIcon /> {curS.badge}</div>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(36px,7vw,58px)", fontWeight: 900, color: "white", margin: "0 0 16px", lineHeight: 1.1 }}>{curS.title}<br /><span style={{ color: "#FFB347" }}>{curS.title_highlight}</span></h1>
         <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 17, lineHeight: 1.6, maxWidth: 520, margin: "0 auto 32px" }}>{curS.subtitle}</p>
-        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.97)", borderRadius: 16, padding: 6, gap: 6, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", flexWrap: "wrap", justifyContent: "center" }}>
-          <select value={selCity} onChange={e => setSelCity(e.target.value)} style={{ border: "none", outline: "none", padding: "14px 16px", fontSize: 14, borderRadius: 12, background: "#f8fafc", color: "#1a1a2e", fontFamily: "inherit", fontWeight: 600, cursor: "pointer", minWidth: 140 }}>{CITIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}</select>
-          <input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", outline: "none", padding: "14px 18px", fontSize: 15, borderRadius: 12, background: "transparent", minWidth: 180, color: "#1a1a2e", fontFamily: "inherit" }} />
-          <button onClick={goList} style={{ background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><SearchIcon /> Rechercher</button>
+        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.97)", borderRadius: 16, padding: 6, gap: 6, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: 500, boxSizing: "border-box" }}>
+          <select value={selCity} onChange={e => setSelCity(e.target.value)} style={{ border: "none", outline: "none", padding: "14px 16px", fontSize: 14, borderRadius: 12, background: "#f8fafc", color: "#1a1a2e", fontFamily: "inherit", fontWeight: 600, cursor: "pointer", flex: "1 1 130px" }}>{CITIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}</select>
+          <input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", outline: "none", padding: "14px 18px", fontSize: 15, borderRadius: 12, background: "transparent", flex: "1 1 150px", color: "#1a1a2e", fontFamily: "inherit" }} />
+          <button onClick={goList} style={{ background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto" }}><SearchIcon /> Rechercher</button>
         </div>
       </div>}
 
@@ -270,22 +281,21 @@ export default function App() {
         <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Type d'hébergement</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{TYPES.map(t => <button key={t} onClick={() => setSelType(t)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selType === t ? "none" : "1px solid #e2e8f0", background: selType === t ? "linear-gradient(135deg,#FF6B00,#FF8534)" : "white", color: selType === t ? "white" : "#475569" }}>{t}</button>)}</div></div>
         {roomTypes.length > 0 && <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Type de logement</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><button onClick={() => setSelRoomType("Tous")} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selRoomType === "Tous" ? "none" : "1px solid #e2e8f0", background: selRoomType === "Tous" ? "#1a1a2e" : "white", color: selRoomType === "Tous" ? "white" : "#475569" }}>Tous</button>{roomTypes.map(rt => <button key={rt.id} onClick={() => setSelRoomType(rt.name)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selRoomType === rt.name ? "none" : "1px solid #e2e8f0", background: selRoomType === rt.name ? "linear-gradient(135deg,#FF6B00,#FF8534)" : "white", color: selRoomType === rt.name ? "white" : "#475569" }}>{rt.name}</button>)}</div></div>}
         {cityQuartiers.length > 0 && <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Quartier / Commune</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><button onClick={() => setSelQuartier("all")} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selQuartier === "all" ? "none" : "1px solid #e2e8f0", background: selQuartier === "all" ? "#1a1a2e" : "white", color: selQuartier === "all" ? "white" : "#475569" }}>Tous</button>{cityQuartiers.map(q => <button key={q.id} onClick={() => setSelQuartier(q.name)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selQuartier === q.name ? "none" : "1px solid #e2e8f0", background: selQuartier === q.name ? "linear-gradient(135deg,#FF6B00,#FF8534)" : "white", color: selQuartier === q.name ? "white" : "#475569" }}>{q.name}</button>)}</div></div>}
-        {allAmenities.length > 0 && <div style={{ flex: "1 1 100%" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Équipements recherchés</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{allAmenities.map(a => <button key={a} onClick={() => toggleAmenity(a)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selAmenities.includes(a) ? "none" : "1px solid #e2e8f0", background: selAmenities.includes(a) ? "#059669" : "white", color: selAmenities.includes(a) ? "white" : "#475569" }}>{a}</button>)}</div></div>}
+        {allAmenities.length > 0 && <div style={{ flex: "1 1 100%" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Équipements</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{allAmenities.map(a => <button key={a} onClick={() => toggleAmenity(a)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: selAmenities.includes(a) ? "none" : "1px solid #e2e8f0", background: selAmenities.includes(a) ? "#059669" : "white", color: selAmenities.includes(a) ? "white" : "#475569" }}>{a}</button>)}</div></div>}
         <div style={{ flex: "1 1 250px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Budget max: {fmt(priceMax)}</div><input type="range" min={5000} max={100000} step={5000} value={priceMax} onChange={e => setPriceMax(Number(e.target.value))} style={{ width: "100%", accentColor: "#FF6B00" }} /></div>
-        {(selAmenities.length > 0 || selRoomType !== "Tous" || selQuartier !== "all" || selType !== "Tous") && <div style={{ flex: "1 1 100%" }}><button onClick={() => { setSelAmenities([]); setSelRoomType("Tous"); setSelQuartier("all"); setSelType("Tous"); setPriceMax(100000); }} style={{ padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626" }}>Réinitialiser tous les filtres</button></div>}
+        {(selAmenities.length > 0 || selRoomType !== "Tous" || selQuartier !== "all" || selType !== "Tous") && <div style={{ flex: "1 1 100%" }}><button onClick={() => { setSelAmenities([]); setSelRoomType("Tous"); setSelQuartier("all"); setSelType("Tous"); setPriceMax(100000); }} style={{ padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626" }}>Réinitialiser les filtres</button></div>}
       </div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 20 }}>
         {filtered.map(p => <Card key={p.id} p={p} onSelect={trackView} onFav={toggleFav} isFav={favs.includes(p.id)} />)}
       </div>
       {filtered.length === 0 && <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}><div style={{ fontSize: 48 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 600, color: "#475569", marginTop: 8 }}>Aucun résultat</div></div>}
 
-      {/* CTA */}
       <div style={{ marginTop: 60, borderRadius: 20, background: "linear-gradient(135deg,#1a1a2e,#16213e)", padding: "48px 32px", textAlign: "center" }}>
         <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 800, color: "white", margin: "0 0 12px" }}>Vous êtes propriétaire ?</h3>
         <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, maxWidth: 500, margin: "0 auto 24px" }}>Inscrivez votre résidence ou hôtel sur StaysPlace</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => { setPage("register"); window.scrollTo(0, 0); }} style={{ background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Inscrire mon établissement</button>
-          <button onClick={() => { setPage("pricing"); window.scrollTo(0, 0); }} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Voir les tarifs</button>
+          <button onClick={() => navigate("register")} style={{ background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Inscrire mon établissement</button>
+          <button onClick={() => navigate("pricing")} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Voir les tarifs</button>
         </div>
       </div>
     </div>}
@@ -293,7 +303,14 @@ export default function App() {
     {/* FAQ */}
     {page === "faq" && <div style={{ maxWidth: 800, margin: "0 auto", padding: "100px 20px 60px" }}>
       <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 800, margin: "0 0 32px" }}>Questions fréquentes</h1>
-      {[{ q: "Comment réserver ?", a: "Sélectionnez un hébergement, choisissez vos dates, remplissez votre nom et téléphone, puis payez avec Mobile Money ou contactez directement via WhatsApp." }, { q: "Quels moyens de paiement ?", a: "Orange Money, MTN Mobile Money et Wave." }, { q: "Comment inscrire mon bien ?", a: "Remplissez le formulaire 'Inscrire mon établissement'. Notre équipe vous contacte sous 24h." }, { q: "Combien coûte l'inscription ?", a: "3 formules : Basic (5 000 F/mois — 1 bien, 3 photos, WhatsApp), Premium (10 000 F/mois — 3 biens, badge sponsorisé, position prioritaire, carrousel, stats), Enterprise (15 000 F/mois — illimité, gestion des chambres, rapport mensuel, support 24/7)." }, { q: "Quelles villes ?", a: "Abidjan, San Pedro, Yamoussoukro, Bouaké, Grand-Bassam et Assinie." }, { q: "Qu'est-ce que le badge Sponsorisé ?", a: "Réservé aux abonnés Premium et Enterprise. Votre établissement apparaît en tête des résultats avec un badge doré visible et peut être mis en avant dans le carrousel de la page d'accueil." }].map((x, i) => <details key={i} style={{ background: "white", borderRadius: 12, marginBottom: 10, border: "1px solid #f1f5f9" }}><summary style={{ padding: "16px 20px", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>{x.q}</summary><div style={{ padding: "0 20px 16px", fontSize: 14, color: "#64748b", lineHeight: 1.7 }}>{x.a}</div></details>)}
+      {[
+        { q: "Comment contacter un hébergement ?", a: "Cliquez sur l'hébergement qui vous intéresse puis sur le bouton WhatsApp. Vous serez mis en contact direct avec l'établissement pour vérifier la disponibilité et obtenir tous les détails." },
+        { q: "Comment se passe le paiement ?", a: "Le paiement se fait directement avec l'établissement via Mobile Money (Orange Money, MTN, Wave) ou selon leurs modalités. StaysPlace ne prend aucune commission." },
+        { q: "Comment inscrire mon bien ?", a: "Remplissez le formulaire 'Inscrire mon établissement'. Notre équipe vous contacte sous 24h." },
+        { q: "Combien coûte l'inscription ?", a: "3 formules : Basic (5 000 F/mois — 1 bien, 3 photos, WhatsApp), Premium (10 000 F/mois — 3 biens, badge sponsorisé, position prioritaire, carrousel, stats), Enterprise (15 000 F/mois — illimité, gestion des chambres, rapport mensuel, support 24/7)." },
+        { q: "Quelles villes sont disponibles ?", a: "Abidjan, San Pedro, Yamoussoukro, Bouaké, Grand-Bassam et Assinie." },
+        { q: "Qu'est-ce que le badge Sponsorisé ?", a: "Réservé aux abonnés Premium et Enterprise. Votre établissement apparaît en tête des résultats avec un badge doré et dans le carrousel de la page d'accueil." }
+      ].map((x, i) => <details key={i} style={{ background: "white", borderRadius: 12, marginBottom: 10, border: "1px solid #f1f5f9" }}><summary style={{ padding: "16px 20px", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>{x.q}</summary><div style={{ padding: "0 20px 16px", fontSize: 14, color: "#64748b", lineHeight: 1.7 }}>{x.a}</div></details>)}
     </div>}
 
     {/* Pricing */}
@@ -301,44 +318,15 @@ export default function App() {
       <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 800, margin: "0 0 40px" }}>Nos tarifs propriétaires</h1>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
         {[
-          {
-            n: "Basic", p: "5 000", c: "#64748b", pop: false, f: [
-              "1 établissement listé",
-              "3 photos par établissement",
-              "Fiche de contact WhatsApp visible",
-              "Formulaire de réservation en ligne",
-              "Visible dans les résultats de recherche",
-              "Badge type affiché (Résidence / Hôtel / Villa)",
-            ]
-          },
-          {
-            n: "Premium", p: "10 000", c: "#FF6B00", pop: true, f: [
-              "3 établissements listés",
-              "10 photos par établissement",
-              "Badge « SPONSORISÉ » sur la carte",
-              "Position prioritaire dans les résultats",
-              "Apparition dans le carrousel hero",
-              "Statistiques de vues (tableau de bord admin)",
-              "Formulaire de réservation + WhatsApp",
-            ]
-          },
-          {
-            n: "Enterprise", p: "15 000", c: "#7C3AED", pop: false, f: [
-              "Établissements illimités",
-              "Photos illimitées par établissement",
-              "Gestion des chambres & tarifs par chambre",
-              "Types de logement personnalisés",
-              "Rapport mensuel de réservations",
-              "Support prioritaire 24/7",
-              "Accès complet au tableau de bord admin",
-            ]
-          }
+          { n: "Basic", p: "5 000", c: "#64748b", pop: false, f: ["1 établissement listé","3 photos par établissement","Fiche de contact WhatsApp visible","Visible dans les résultats de recherche","Badge type affiché (Résidence / Hôtel / Villa)"] },
+          { n: "Premium", p: "10 000", c: "#FF6B00", pop: true, f: ["3 établissements listés","10 photos par établissement","Badge SPONSORISÉ sur la carte","Position prioritaire dans les résultats","Apparition dans le carrousel hero","Statistiques de vues (tableau de bord admin)"] },
+          { n: "Enterprise", p: "15 000", c: "#7C3AED", pop: false, f: ["Établissements illimités","Photos illimitées par établissement","Gestion des chambres & tarifs","Rapport mensuel de réservations","Support prioritaire 24/7","Accès complet au tableau de bord admin"] }
         ].map((pl, i) => <div key={i} style={{ flex: "1 1 260px", maxWidth: 300, background: "white", borderRadius: 16, padding: "28px 24px", border: pl.pop ? `2px solid ${pl.c}` : "1px solid #f1f5f9", position: "relative" }}>
           {pl.pop && <div style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", background: pl.c, color: "white", fontSize: 11, fontWeight: 700, padding: "4px 16px", borderRadius: "0 0 8px 8px" }}>POPULAIRE</div>}
           <div style={{ fontSize: 18, fontWeight: 800, color: pl.c, marginTop: pl.pop ? 12 : 0 }}>{pl.n}</div>
           <div style={{ fontSize: 36, fontWeight: 800, margin: "8px 0" }}>{pl.p}<span style={{ fontSize: 14, color: "#94a3b8" }}> F/mois</span></div>
           <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 16, paddingTop: 16, textAlign: "left" }}>{pl.f.map((f, fi) => <div key={fi} style={{ fontSize: 13, color: "#475569", marginBottom: 8, display: "flex", gap: 6, alignItems: "flex-start" }}><span style={{ color: pl.c, fontWeight: 700, flexShrink: 0 }}>✓</span>{f}</div>)}</div>
-          <button onClick={() => { setPage("register"); window.scrollTo(0, 0); }} style={{ width: "100%", marginTop: 16, background: pl.pop ? pl.c : "white", color: pl.pop ? "white" : "#475569", border: pl.pop ? "none" : "1px solid #e2e8f0", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Choisir {pl.n}</button>
+          <button onClick={() => navigate("register")} style={{ width: "100%", marginTop: 16, background: pl.pop ? pl.c : "white", color: pl.pop ? "white" : "#475569", border: pl.pop ? "none" : "1px solid #e2e8f0", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Choisir {pl.n}</button>
         </div>)}
       </div>
     </div>}
@@ -371,7 +359,7 @@ export default function App() {
           </div>
           <div style={{ flex: "1 1 130px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "white", marginBottom: 12, textTransform: "uppercase" }}>Pages</div>
-            {[{ l: "Inscrire mon bien", p: "register" }, { l: "Tarifs", p: "pricing" }, { l: "FAQ", p: "faq" }, { l: "Contact", p: "contact" }].map(({ l, p }) => <div key={l} onClick={() => { setPage(p); window.scrollTo(0, 0); }} style={{ fontSize: 13, marginBottom: 8, cursor: "pointer" }}>{l}</div>)}
+            {[{ l: "Hébergements", p: "listings" }, { l: "Inscrire mon bien", p: "register" }, { l: "Tarifs", p: "pricing" }, { l: "FAQ", p: "faq" }, { l: "Contact", p: "contact" }].map(({ l, p }) => <div key={l} onClick={() => navigate(p)} style={{ fontSize: 13, marginBottom: 8, cursor: "pointer" }}>{l}</div>)}
           </div>
           <div style={{ flex: "1 1 180px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "white", marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
