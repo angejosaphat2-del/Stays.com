@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { sbGet, sbPost } from "./supabase";
 
+// Helper PATCH pour mise à jour
+async function sbPatch(table, id, data) {
+  try {
+    const SB = "https://clovwbjdmhkgcocvyzgm.supabase.co";
+    const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsb3Z3YmpkbWhrZ2NvY3Z5emdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMDg1NTIsImV4cCI6MjA4OTc4NDU1Mn0.7NgCTnaUxHWWyhcgB7eji0Pypqo5zDqJ8D9n3cB-qyU";
+    await fetch(`${SB}/rest/v1/${table}?id=eq.${id}`, { method: "PATCH", headers: { apikey: SK, Authorization: `Bearer ${SK}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(data) });
+  } catch (e) { console.error("Patch error:", e); }
+}
+
 const CITIES = [
   { name: "Toutes les villes", code: "all" },
   { name: "Abidjan", code: "Abidjan" }, { name: "San Pedro", code: "San Pedro" },
@@ -63,43 +72,275 @@ function Card({ p, onSelect, onFav, isFav }) {
   </div>;
 }
 
-function Detail({ p, onClose, rooms: allRooms }) {
+const AMENITY_ICONS = {"Wi-Fi":"📶","Climatisation":"❄️","Piscine":"🏊","Restaurant":"🍽️","Spa":"💆","Plage privée":"🏖️","Piscine privée":"🏊","Chef privé":"👨‍🍳","Jardin":"🌿","Parking":"🅿️","Salle de sport":"💪","Bar":"🍸","Buanderie":"🧺","Room service":"🛎️","Coffre-fort":"🔒","TV":"📺","Balcon":"🌅","Terrasse":"☀️","Vue mer":"🌊","Vue lagune":"🌊","Kitchenette":"🍳","Petit-déjeuner":"🥐","Transfert aéroport":"✈️","Conciergerie":"🔑"};
+const BedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>;
+const UserIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const CheckIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
+
+function Detail({ p, onClose, rooms: allRooms, onRatingUpdate }) {
   const [ii, sII] = useState(0);
+  const [expandedRoom, setExpandedRoom] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: "", rating: 0, comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSent, setReviewSent] = useState(false);
+  const [reviewError, setReviewError] = useState("");
   const imgs = p.images?.length ? p.images : [p.image];
   const propRooms = allRooms.filter(r => r.property_id === p.id);
   const waMsg = encodeURIComponent(`Bonjour, je suis intéressé par ${p.name} sur StaysPlace. Pouvez-vous me donner plus d'informations ?`);
   const waLink = `https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=${waMsg}`;
+  const cheapestRoom = propRooms.length > 0 ? Math.min(...propRooms.map(r => r.price)) : null;
+
+  // Charger les avis
+  useEffect(() => {
+    async function loadReviews() {
+      setLoadingReviews(true);
+      const rv = await sbGet("reviews", `property_id=eq.${p.id}&status=eq.approved&order=created_at.desc`);
+      if (rv && Array.isArray(rv)) setReviews(rv);
+      setLoadingReviews(false);
+    }
+    loadReviews();
+  }, [p.id]);
+
+  // Soumettre un avis
+  const submitReview = async () => {
+    if (!reviewForm.name.trim()) { setReviewError("Entrez votre nom"); return; }
+    if (reviewForm.rating === 0) { setReviewError("Sélectionnez une note"); return; }
+    setReviewError("");
+    setSubmittingReview(true);
+    const data = {
+      property_id: p.id,
+      guest_name: reviewForm.name.trim(),
+      rating: reviewForm.rating,
+      comment: reviewForm.comment.trim() || null,
+      status: "approved",
+      created_at: new Date().toISOString()
+    };
+    const res = await sbPost("reviews", data);
+    if (res) {
+      setReviews(prev => [Array.isArray(res) ? res[0] : res, ...prev]);
+      setReviewSent(true);
+      // Recalculer la note moyenne
+      const allRatings = [...reviews.map(r => r.rating), reviewForm.rating];
+      const newAvg = Math.round((allRatings.reduce((s, r) => s + r, 0) / allRatings.length) * 10) / 10;
+      const newCount = allRatings.length;
+      await sbPost("rpc/update_property_rating", { p_id: p.id, p_rating: newAvg, p_reviews: newCount }).catch(() => {
+        // Fallback: patch direct
+        sbPatch("properties", p.id, { rating: newAvg, reviews: newCount }).catch(() => {});
+      });
+      if (onRatingUpdate) onRatingUpdate(p.id, newAvg, newCount);
+    } else {
+      setReviewError("Erreur lors de l'envoi. Réessayez.");
+    }
+    setSubmittingReview(false);
+  };
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-    <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
-      <div style={{ position: "relative", height: 280, overflow: "hidden", borderRadius: "20px 20px 0 0" }}>
-        <img src={imgs[ii]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "white", fontSize: 20 }}>✕</button>
-        {imgs.length > 1 && <div style={{ position: "absolute", bottom: 14, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6 }}>
-          {imgs.map((_, i) => <div key={i} onClick={() => sII(i)} style={{ width: ii === i ? 20 : 8, height: 8, borderRadius: 4, background: ii === i ? "white" : "rgba(255,255,255,0.5)", cursor: "pointer" }} />)}
-        </div>}
-      </div>
-      <div style={{ padding: "20px 24px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-          <div><h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{p.name}</h2><div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#64748b", fontSize: 14 }}><MapPinIcon /> {p.quartier}, {p.city}</div></div>
-          <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#0C6E3D" }}>{fmt(p.price)}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>par nuit</div></div>
+    <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 20, maxWidth: 580, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
+
+      {/* ── GALERIE PHOTO ── */}
+      <div style={{ position: "relative", height: 300, overflow: "hidden", borderRadius: "20px 20px 0 0" }}>
+        <img src={imgs[ii]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "opacity 0.3s" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(transparent 50%, rgba(0,0,0,0.4))" }} />
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", border: "none", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "white", fontSize: 20 }}>✕</button>
+
+        {/* Badges en haut */}
+        <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 6 }}>
+          {p.sponsored && <span style={{ background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "white", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>⭐ SPONSORISÉ</span>}
+          <span style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "white", fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 20 }}>{p.type}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}><div style={{ display: "flex", gap: 1 }}>{[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div><span style={{ fontWeight: 700 }}>{p.rating}</span><span style={{ color: "#94a3b8", fontSize: 13 }}>• {p.reviews} avis</span></div>
-        <p style={{ color: "#475569", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{p.description}</p>
-        <div style={{ marginTop: 16 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Équipements</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(p.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 12, padding: "5px 12px", borderRadius: 8, fontWeight: 600, border: "1px solid #bbf7d0" }}>{a}</span>)}</div></div>
-        {propRooms.length > 0 && <div style={{ marginTop: 20 }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>Chambres disponibles</div>{propRooms.map(r => <div key={r.id} style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 8, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>{r.description && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{r.description}</div>}<div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>{(r.amenities || []).map((a, i) => <span key={i} style={{ background: "#f0fdf4", color: "#166534", fontSize: 10, padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>{a}</span>)}</div></div><div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#0C6E3D" }}>{fmt(r.price)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>par nuit · {r.capacity} pers.</div></div></div></div>)}</div>}
+
+        {/* Compteur photos */}
+        {imgs.length > 1 && <div style={{ position: "absolute", bottom: 14, right: 14, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "white", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20 }}>📷 {ii + 1}/{imgs.length}</div>}
+
+        {/* Flèches navigation */}
+        {imgs.length > 1 && <>
+          <button onClick={() => sII(i => i === 0 ? imgs.length - 1 : i - 1)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.85)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>‹</button>
+          <button onClick={() => sII(i => (i + 1) % imgs.length)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.85)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>›</button>
+        </>}
+      </div>
+
+      {/* Miniatures */}
+      {imgs.length > 1 && <div style={{ display: "flex", gap: 4, padding: "8px 16px", overflowX: "auto" }}>
+        {imgs.map((img, i) => <div key={i} onClick={() => sII(i)} style={{ flexShrink: 0, width: 56, height: 40, borderRadius: 8, overflow: "hidden", cursor: "pointer", border: ii === i ? "2px solid #FF6B00" : "2px solid transparent", opacity: ii === i ? 1 : 0.6, transition: "all 0.2s" }}>
+          <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+        </div>)}
+      </div>}
+
+      <div style={{ padding: "16px 24px 24px" }}>
+
+        {/* ── EN-TÊTE ── */}
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 4 }}>
+          <div style={{ flex: "1 1 250px" }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{p.name}</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#64748b", fontSize: 14 }}><MapPinIcon /> {p.quartier}, {p.city}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 12, color: "#94a3b8" }}>{cheapestRoom ? "à partir de" : "par nuit"}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#0C6E3D" }}>{fmt(cheapestRoom || p.price)}</div>
+          </div>
+        </div>
+
+        {/* Note */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, marginBottom: 16 }}>
+          <div style={{ background: "#0C6E3D", color: "white", fontWeight: 800, fontSize: 14, padding: "4px 10px", borderRadius: 8 }}>{p.rating}</div>
+          <div style={{ display: "flex", gap: 1 }}>{[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= Math.round(p.rating)} />)}</div>
+          <span style={{ color: "#94a3b8", fontSize: 13 }}>{p.reviews} avis</span>
+        </div>
+
+        {/* ── RÉSUMÉ / POINTS FORTS ── */}
+        <div style={{ background: "#f8fafc", borderRadius: 14, padding: "14px 16px", marginBottom: 16, border: "1px solid #f1f5f9" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "#1a1a2e" }}>✨ Résumé</div>
+          <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.7, margin: 0 }}>{p.description}</p>
+
+          {/* Infos clés en grille */}
+          <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "white", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "1px solid #e2e8f0" }}>
+              <MapPinIcon /> {p.city}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "white", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "1px solid #e2e8f0" }}>
+              🏷️ {p.type}
+            </div>
+            {propRooms.length > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, background: "white", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "1px solid #e2e8f0" }}>
+              🛏️ {propRooms.length} chambre{propRooms.length > 1 ? "s" : ""}
+            </div>}
+          </div>
+        </div>
+
+        {/* ── ÉQUIPEMENTS ── */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1, color: "#1a1a2e" }}>Équipements de l'établissement</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {(p.amenities || []).map((a, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+              <span style={{ fontSize: 16 }}>{AMENITY_ICONS[a] || "✓"}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#166534" }}>{a}</span>
+            </div>)}
+          </div>
+        </div>
+
+        {/* ── CHAMBRES DISPONIBLES ── */}
+        {propRooms.length > 0 && <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1, color: "#1a1a2e" }}>🛏️ Chambres disponibles ({propRooms.length})</div>
+          {propRooms.map(r => {
+            const isExpanded = expandedRoom === r.id;
+            const roomImgs = r.images?.length ? r.images : [];
+            return <div key={r.id} style={{ borderRadius: 14, marginBottom: 10, border: "1px solid #e2e8f0", overflow: "hidden", background: "white", transition: "box-shadow 0.2s", boxShadow: isExpanded ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}>
+
+              {/* En-tête chambre — toujours visible */}
+              <div onClick={() => setExpandedRoom(isExpanded ? null : r.id)} style={{ display: "flex", gap: 12, padding: 14, cursor: "pointer", alignItems: "center" }}>
+                {/* Photo miniature chambre */}
+                {roomImgs.length > 0 && <div style={{ width: 72, height: 54, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                  <img src={roomImgs[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                </div>}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, fontSize: 12, color: "#64748b" }}>
+                    {r.capacity && <span style={{ display: "flex", alignItems: "center", gap: 3 }}><UserIcon /> {r.capacity} pers.</span>}
+                    {r.bed_type && <span style={{ display: "flex", alignItems: "center", gap: 3 }}><BedIcon /> {r.bed_type}</span>}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#0C6E3D" }}>{fmt(r.price)}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>/ nuit</div>
+                </div>
+
+                <div style={{ fontSize: 14, color: "#94a3b8", flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }}>▼</div>
+              </div>
+
+              {/* Détails chambre — expandable */}
+              {isExpanded && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f1f5f9" }}>
+
+                {/* Photos chambre */}
+                {roomImgs.length > 0 && <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", paddingBottom: 4 }}>
+                  {roomImgs.map((img, i) => <div key={i} style={{ width: 120, height: 80, borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
+                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                  </div>)}
+                </div>}
+
+                {/* Description chambre */}
+                {r.description && <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, marginTop: 10, marginBottom: 0 }}>{r.description}</p>}
+
+                {/* Équipements chambre */}
+                {(r.amenities || []).length > 0 && <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase" }}>Équipements de la chambre</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {(r.amenities || []).map((a, i) => <span key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#f0fdf4", color: "#166534", fontSize: 11, padding: "4px 10px", borderRadius: 6, fontWeight: 600, border: "1px solid #dcfce7" }}>
+                      <CheckIcon /> {a}
+                    </span>)}
+                  </div>
+                </div>}
+
+                {/* Bouton WhatsApp pour cette chambre */}
+                <a href={`https://wa.me/${(p.whatsapp || "").replace(/[^0-9+]/g, "")}?text=${encodeURIComponent(`Bonjour, je suis intéressé par la chambre "${r.name}" à ${p.name} sur StaysPlace. Est-elle disponible ?`)}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "white", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", marginTop: 12 }}>
+                  <WhatsAppIcon /> Réserver cette chambre
+                </a>
+              </div>}
+            </div>;
+          })}
+        </div>}
+
+        {/* ── AVIS DES VISITEURS ── */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1, color: "#1a1a2e" }}>💬 Avis des visiteurs ({reviews.length})</div>
+
+          {/* Formulaire d'avis */}
+          {!reviewSent ? <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, border: "1px solid #f1f5f9", marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Laisser un avis</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input placeholder="Votre nom" value={reviewForm.name} onChange={e => setReviewForm(f => ({ ...f, name: e.target.value }))} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>Votre note</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setReviewForm(f => ({ ...f, rating: s }))} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, transform: reviewForm.rating >= s ? "scale(1.2)" : "scale(1)", transition: "transform 0.15s" }}>
+                  <StarIcon filled={reviewForm.rating >= s} />
+                </button>)}
+                {reviewForm.rating > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: "#F59E0B", marginLeft: 4 }}>{reviewForm.rating}/5</span>}
+              </div>
+            </div>
+            <textarea placeholder="Votre commentaire (optionnel)" value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))} rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+            {reviewError && <div style={{ fontSize: 12, color: "#dc2626", marginTop: 6 }}>{reviewError}</div>}
+            <button onClick={submitReview} disabled={submittingReview} style={{ marginTop: 8, width: "100%", background: "linear-gradient(135deg,#FF6B00,#FF8534)", color: "white", border: "none", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: submittingReview ? "wait" : "pointer", opacity: submittingReview ? 0.6 : 1 }}>
+              {submittingReview ? "Envoi..." : "Publier mon avis"}
+            </button>
+          </div>
+          : <div style={{ background: "#f0fdf4", borderRadius: 14, padding: 16, border: "1px solid #bbf7d0", marginBottom: 14, textAlign: "center" }}>
+            <div style={{ fontSize: 24, marginBottom: 4 }}>✅</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#166534" }}>Merci pour votre avis !</div>
+          </div>}
+
+          {/* Liste des avis */}
+          {loadingReviews && <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>Chargement des avis...</div>}
+          {!loadingReviews && reviews.length === 0 && <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>Aucun avis pour le moment. Soyez le premier !</div>}
+          {reviews.slice(0, showAllReviews ? reviews.length : 3).map(rv => <div key={rv.id} style={{ padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B00,#FF8534)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 13 }}>{(rv.guest_name || "A")[0].toUpperCase()}</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{rv.guest_name || "Anonyme"}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{rv.created_at ? new Date(rv.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : ""}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 1 }}>{[1, 2, 3, 4, 5].map(s => <StarIcon key={s} filled={s <= rv.rating} />)}</div>
+            </div>
+            {rv.comment && <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, margin: "8px 0 0 40px" }}>{rv.comment}</p>}
+          </div>)}
+          {reviews.length > 3 && !showAllReviews && <button onClick={() => setShowAllReviews(true)} style={{ width: "100%", background: "none", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#64748b", marginTop: 8 }}>Voir les {reviews.length - 3} autres avis</button>}
+        </div>
 
         {/* Bannière info contact */}
-        <div style={{ marginTop: 20, background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#92400e" }}>
+        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#92400e", marginBottom: 14 }}>
           💬 Pour vérifier la disponibilité et obtenir les détails, contactez directement l'établissement via WhatsApp.
         </div>
 
-        {/* Bouton WhatsApp uniquement */}
-        <div style={{ marginTop: 14 }}>
-          <a href={waLink} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#25D366", color: "white", padding: "16px 20px", borderRadius: 12, fontSize: 16, fontWeight: 700, textDecoration: "none" }}>
-            <WhatsAppIcon /> Contacter via WhatsApp
-          </a>
-        </div>
+        {/* Bouton WhatsApp principal */}
+        <a href={waLink} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#25D366", color: "white", padding: "16px 20px", borderRadius: 12, fontSize: 16, fontWeight: 700, textDecoration: "none" }}>
+          <WhatsAppIcon /> Contacter via WhatsApp
+        </a>
       </div>
     </div>
   </div>;
@@ -372,6 +613,6 @@ export default function App() {
       </div>
     </footer>
 
-    {selProp && <Detail p={selProp} onClose={() => setSelProp(null)} rooms={rooms} />}
+    {selProp && <Detail p={selProp} onClose={() => setSelProp(null)} rooms={rooms} onRatingUpdate={(id, rating, reviews) => setProperties(ps => ps.map(x => x.id === id ? { ...x, rating, reviews } : x))} />}
   </div>;
 }
