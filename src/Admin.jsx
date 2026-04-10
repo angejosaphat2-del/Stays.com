@@ -12,6 +12,20 @@ async function sbPatchW(t,w,d){try{await fetch(`${SB}/rest/v1/${t}?${w}`,{method
 async function doSignIn(e,p){try{const r=await fetch(`${SB}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:SK,"Content-Type":"application/json"},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(d.access_token){TOKEN=d.access_token;return{ok:true};}return{ok:false,err:d.error_description||d.msg||"Erreur"};}catch{return{ok:false,err:"Serveur inaccessible"};}}
 async function doSignUp(e,p){try{const r=await fetch(`${SB}/auth/v1/signup`,{method:"POST",headers:{apikey:SK,"Content-Type":"application/json"},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(d.id||d.access_token){if(d.access_token)TOKEN=d.access_token;return{ok:true};}return{ok:false,err:d.error_description||d.msg||"Erreur"};}catch{return{ok:false,err:"Serveur inaccessible"};}}
 
+async function sbUpload(file){
+  const ext=file.name.split(".").pop()||"jpg";
+  const name=`${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  try{
+    const r=await fetch(`${SB}/storage/v1/object/properties/${name}`,{
+      method:"POST",
+      headers:{apikey:SK,Authorization:`Bearer ${TOKEN||SK}`,"Content-Type":file.type,"x-upsert":"true"},
+      body:file
+    });
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.message||"Upload échoué");}
+    return `${SB}/storage/v1/object/public/properties/${name}`;
+  }catch(e){console.error("Upload error:",e);return null;}
+}
+
 async function generateAIText(property){try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Tu es un expert en marketing immobilier en Côte d'Ivoire. Génère un post attractif pour les réseaux sociaux pour cet hébergement. Inclus des emojis, des hashtags, et un appel à l'action.\n\nNom: ${property.name}\nType: ${property.type}\nVille: ${property.city}, ${property.quartier}\nPrix: ${property.price} FCFA/nuit\nDescription: ${property.description}\nÉquipements: ${(property.amenities||[]).join(", ")}\n\nGénère 2 versions:\n1. Version courte (WhatsApp) - max 3 lignes\n2. Version longue (Facebook/Instagram) - max 8 lignes\n\nRéponds en JSON: {"short":"...","long":"...","hashtags":"..."}\nPas de backticks markdown.`}]})});const d=await r.json();const text=d.content?.find(c=>c.type==="text")?.text||"";try{return JSON.parse(text.trim());}catch{return{short:text.slice(0,200),long:text,hashtags:"#StaysPlace #CoteDIvoire"};}}catch{return null;}}
 
 const CITIES=["Abidjan","San Pedro","Yamoussoukro","Bouaké","Grand-Bassam","Assinie"];
@@ -122,6 +136,39 @@ function OwnerForm({owner,plans,onSave,onClose}){const[f,sF]=useState(owner||{na
 function PropForm({prop,owners,onSave,onClose}){
   const[f,sF]=useState(prop||{name:"",type:"Résidence",quartier:"",city:"Abidjan",price:"",description:"",whatsapp:"",amenities:[],owner_id:"",status:"pending",sponsored:false,images:[],image:""});
   const[nA,sNA]=useState("");const[nI,sNI]=useState("");const[saving,sS]=useState(false);const set=(k,v)=>sF(p=>({...p,[k]:v}));
+  const[uploading,setUploading]=useState(false);const[uploadProgress,setUploadProgress]=useState("");const[dragOver,setDragOver]=useState(false);
+
+  const uploadFiles=async(files)=>{
+    if(!files||files.length===0)return;
+    const validFiles=Array.from(files).filter(f=>f.type.startsWith("image/"));
+    if(validFiles.length===0)return;
+    setUploading(true);
+    let uploaded=0;
+    for(const file of validFiles){
+      setUploadProgress(`Upload ${uploaded+1}/${validFiles.length} — ${file.name}`);
+      const url=await sbUpload(file);
+      if(url){
+        sF(prev=>({...prev,images:[...(prev.images||[]),url],image:prev.image||url}));
+        uploaded++;
+      }else{
+        // Fallback base64 si Storage pas configuré
+        await new Promise(resolve=>{
+          const r=new FileReader();
+          r.onload=ev=>{sF(prev=>({...prev,images:[...(prev.images||[]),ev.target.result],image:prev.image||ev.target.result}));resolve();};
+          r.readAsDataURL(file);
+        });
+        uploaded++;
+      }
+    }
+    setUploading(false);setUploadProgress("");
+  };
+
+  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);uploadFiles(e.dataTransfer.files);};
+  const handleDragOver=(e)=>{e.preventDefault();setDragOver(true);};
+  const handleDragLeave=(e)=>{e.preventDefault();setDragOver(false);};
+  const setMainPhoto=(img)=>set("image",img);
+  const movePhoto=(from,to)=>{const imgs=[...(f.images||[])];const[moved]=imgs.splice(from,1);imgs.splice(to,0,moved);set("images",imgs);};
+
   const save=async()=>{sS(true);const d={name:f.name,type:f.type,quartier:f.quartier,city:f.city,price:Number(f.price),description:f.description,whatsapp:f.whatsapp,amenities:f.amenities,owner_id:f.owner_id||null,status:f.status,sponsored:f.sponsored,images:f.images,image:f.image||f.images?.[0]||""};if(prop?.id)await sbPatch("properties",prop.id,d);else await sbPost("properties",d);sS(false);onSave();};
   return<div className="modal-overlay" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
     <div className="flex-between" style={{marginBottom:20}}><h2 style={{fontSize:20,fontWeight:800}}>{prop?"Modifier":"Nouvel hébergement"}</h2><button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"var(--light)"}}>✕</button></div>
@@ -137,8 +184,70 @@ function PropForm({prop,owners,onSave,onClose}){
     </div>
     <div style={{marginBottom:12}}><label className="label">Description</label><textarea className="input" value={f.description||""} onChange={e=>set("description",e.target.value)} rows={3} style={{resize:"vertical"}}/></div>
     <div style={{marginBottom:12}}><label className="label">Équipements</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>{(f.amenities||[]).map((a,i)=><span key={i} className="tag" style={{background:"#f0fdf4",color:"#166534",border:"1px solid #bbf7d0"}}>{a}<button onClick={()=>set("amenities",f.amenities.filter((_,x)=>x!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",padding:0,marginLeft:4}}>×</button></span>)}</div><div className="flex-gap"><input className="input" value={nA} onChange={e=>sNA(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&nA.trim()){e.preventDefault();set("amenities",[...(f.amenities||[]),nA.trim()]);sNA("");}}} placeholder="Wi-Fi, Piscine..." style={{flex:1}}/><button className="btn-secondary btn-sm" onClick={()=>{if(nA.trim()){set("amenities",[...(f.amenities||[]),nA.trim()]);sNA("");}}}>+</button></div></div>
-    <div style={{marginBottom:16}}><label className="label">Photos</label><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>{(f.images||[]).map((img,i)=><div key={i} style={{position:"relative",width:80,height:60,borderRadius:8,overflow:"hidden",border:f.image===img?"2px solid var(--accent)":"1px solid var(--border)"}}><img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/><button onClick={()=>{const imgs=f.images.filter((_,x)=>x!==i);set("images",imgs);if(f.image===f.images[i])set("image",imgs[0]||"");}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.7)",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button></div>)}<label style={{width:80,height:60,borderRadius:8,border:"2px dashed #cbd5e1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#f8fafc",fontSize:10,color:"var(--accent)",fontWeight:700}}>+ PHOTO<input type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{Array.from(e.target.files||[]).forEach(file=>{const r=new FileReader();r.onload=ev=>{sF(prev=>({...prev,images:[...(prev.images||[]),ev.target.result],image:prev.image||ev.target.result}));};r.readAsDataURL(file);});e.target.value="";}}/></label></div><div className="flex-gap"><input className="input" value={nI} onChange={e=>sNI(e.target.value)} placeholder="URL de l'image..." style={{flex:1}}/><button className="btn-secondary btn-sm" onClick={()=>{if(nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}>+</button></div></div>
-    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}><button className="btn-secondary" onClick={onClose}>Annuler</button><button className="btn-primary" onClick={save} disabled={saving}>{saving?"...":prop?"Enregistrer":"Créer"}</button></div>
+
+    {/* ── SECTION PHOTOS AMÉLIORÉE ── */}
+    <div style={{marginBottom:16}}>
+      <div className="flex-between" style={{marginBottom:8}}>
+        <label className="label" style={{margin:0}}>Photos ({(f.images||[]).length})</label>
+        {f.image&&<span style={{fontSize:10,color:"var(--accent)",fontWeight:600}}>★ = photo principale</span>}
+      </div>
+
+      {/* Zone drag & drop */}
+      <div
+        onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
+        style={{
+          border:dragOver?"2px dashed var(--accent)":"2px dashed #cbd5e1",
+          borderRadius:14,background:dragOver?"rgba(255,107,0,.04)":"#fafbfc",
+          padding:(f.images||[]).length>0?"12px":"32px 16px",
+          transition:"all .2s",marginBottom:10,position:"relative"
+        }}
+      >
+        {uploading&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.85)",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:5}}>
+          <div style={{width:40,height:40,border:"3px solid #e2e8f0",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+          <div style={{fontSize:12,fontWeight:600,color:"var(--accent)",marginTop:10}}>{uploadProgress}</div>
+        </div>}
+
+        {/* Grille de photos */}
+        {(f.images||[]).length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:8,marginBottom:10}}>
+          {(f.images||[]).map((img,i)=><div key={i} style={{
+            position:"relative",aspectRatio:"4/3",borderRadius:10,overflow:"hidden",
+            border:f.image===img?"3px solid var(--accent)":"2px solid transparent",
+            boxShadow:f.image===img?"0 0 0 2px rgba(255,107,0,.2)":"none",
+            cursor:"pointer",transition:"all .15s"
+          }} onClick={()=>setMainPhoto(img)}>
+            <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy"/>
+            {/* Badge photo principale */}
+            {f.image===img&&<div style={{position:"absolute",top:4,left:4,background:"var(--accent)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:6}}>★ PRINCIPALE</div>}
+            {/* Numéro */}
+            <div style={{position:"absolute",bottom:4,left:4,background:"rgba(0,0,0,.6)",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:4}}>{i+1}</div>
+            {/* Actions */}
+            <div style={{position:"absolute",top:4,right:4,display:"flex",gap:3}}>
+              {i>0&&<button onClick={e=>{e.stopPropagation();movePhoto(i,i-1);}} style={{background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Déplacer à gauche">←</button>}
+              {i<(f.images||[]).length-1&&<button onClick={e=>{e.stopPropagation();movePhoto(i,i+1);}} style={{background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Déplacer à droite">→</button>}
+              <button onClick={e=>{e.stopPropagation();const imgs=f.images.filter((_,x)=>x!==i);set("images",imgs);if(f.image===f.images[i])set("image",imgs[0]||"");}} style={{background:"rgba(220,38,38,.85)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Supprimer">×</button>
+            </div>
+          </div>)}
+        </div>}
+
+        {/* Zone d'ajout */}
+        <label style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:uploading?"wait":"pointer",padding:(f.images||[]).length>0?"8px 0":"0",gap:6}}>
+          <div style={{fontSize:28,lineHeight:1}}>📸</div>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--accent)"}}>Cliquer ou glisser-déposer des photos</div>
+          <div style={{fontSize:11,color:"var(--light)"}}>JPG, PNG, WebP — plusieurs fichiers autorisés</div>
+          <input type="file" accept="image/*" multiple style={{display:"none"}} disabled={uploading} onChange={e=>{uploadFiles(e.target.files);e.target.value="";}}/>
+        </label>
+      </div>
+
+      {/* Ajout par URL */}
+      <div className="flex-gap">
+        <input className="input" value={nI} onChange={e=>sNI(e.target.value)} placeholder="Ou coller une URL d'image..." style={{flex:1}} onKeyDown={e=>{if(e.key==="Enter"&&nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}/>
+        <button className="btn-secondary btn-sm" onClick={()=>{if(nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}>+ URL</button>
+      </div>
+      {(f.images||[]).length>0&&<div style={{fontSize:11,color:"var(--light)",marginTop:6}}>💡 Cliquez sur une photo pour la définir comme principale</div>}
+    </div>
+
+    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}><button className="btn-secondary" onClick={onClose}>Annuler</button><button className="btn-primary" onClick={save} disabled={saving||uploading}>{saving?"Enregistrement...":(uploading?"Upload en cours...":prop?"Enregistrer":"Créer")}</button></div>
   </div></div>;
 }
 
@@ -150,6 +259,7 @@ export default function Admin(){
   const[bookings,setBookings]=useState(DEMO_BOOKINGS);const[plans,setPlans]=useState(DEMO_PLANS);
   const[boosts,setBoosts]=useState([]);const[boostTypes,setBT]=useState(DEMO_BTYPES);
   const[settings,setSettings]=useState({phone:"+225 07 00 00 00 00",email:"contact@staysplace.com",whatsapp:"+22507000000",address:"Abidjan, Côte d'Ivoire",tagline:"N°1 en CI"});
+  const[quartiers,setQuartiers]=useState([]);const[newQ,setNewQ]=useState({name:"",city:"Abidjan"});const[savingQ,setSQ]=useState(false);
   const[online,setOnline]=useState(false);
   const[showForm,setSF]=useState(false);const[editProp,setEP]=useState(null);
   const[showOF,setSOF]=useState(false);const[editOwner,setEO]=useState(null);
@@ -169,6 +279,7 @@ export default function Admin(){
       const bo=await sbGet("boosts","order=created_at.desc");if(bo)setBoosts(bo);
       const bt=await sbGet("boost_types","active=eq.true&order=sort_order.asc");if(bt&&bt.length>0)setBT(bt);
       const s=await sbGet("site_settings","");if(s){const m={};s.forEach(x=>{m[x.key]=x.value;});setSettings(m);}
+      const q=await sbGet("quartiers","order=city.asc,name.asc");if(q&&Array.isArray(q))setQuartiers(q);
     }
   },[]);
 
@@ -315,7 +426,7 @@ export default function Admin(){
       </div>}
 
       {/* Settings */}
-      {page==="settings"&&<div><h1 className="page-title" style={{marginBottom:20}}>⚙️ Paramètres</h1><div className="card" style={{maxWidth:500}}>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label className="label">{l}</label><input className="input" value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))}/></div>)}<button className="btn-primary" onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS}>{savingS?"...":"Sauvegarder"}</button></div></div>}
+      {page==="settings"&&<div><h1 className="page-title" style={{marginBottom:20}}>⚙️ Paramètres</h1><div style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"flex-start"}}><div className="card" style={{maxWidth:500,flex:"1 1 300px"}}><div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Informations du site</div>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label className="label">{l}</label><input className="input" value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))}/></div>)}<button className="btn-primary" onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS}>{savingS?"...":"Sauvegarder"}</button></div><div className="card" style={{flex:"1 1 320px"}}><div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Quartiers / Communes</div><div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}><select className="input" style={{flex:"0 0 130px"}} value={newQ.city} onChange={e=>setNewQ(q=>({...q,city:e.target.value}))}><option>Abidjan</option><option>San Pedro</option><option>Yamoussoukro</option><option>Bouaké</option><option>Grand-Bassam</option><option>Assinie</option></select><input className="input" style={{flex:1,minWidth:120}} placeholder="Nom du quartier" value={newQ.name} onChange={e=>setNewQ(q=>({...q,name:e.target.value}))}/><button className="btn-primary" disabled={!newQ.name||savingQ} onClick={async()=>{setSQ(true);await sbPost("quartiers",{name:newQ.name.trim(),city:newQ.city});setNewQ(q=>({...q,name:""}));const q=await sbGet("quartiers","order=city.asc,name.asc");if(q)setQuartiers(q);setSQ(false);}}>{savingQ?"...":"+"}</button></div><div style={{maxHeight:320,overflowY:"auto"}}>{["Abidjan","San Pedro","Yamoussoukro","Bouaké","Grand-Bassam","Assinie"].map(city=>{const cq=quartiers.filter(q=>q.city===city);if(!cq.length)return null;return<div key={city} style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{city}</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{cq.map(q=><span key={q.id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f1f5f9",borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600}}>{q.name}<button onClick={async()=>{await sbDel("quartiers",q.id);setQuartiers(qs=>qs.filter(x=>x.id!==q.id));}} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontSize:14,lineHeight:1,padding:0}}>×</button></span>)}</div></div>;})} {quartiers.length===0&&<div style={{color:"var(--muted)",fontSize:13,textAlign:"center",padding:20}}>Aucun quartier ajouté</div>}</div></div></div></div>}
     </main>
 
     {showForm&&<PropForm prop={editProp} owners={owners} onSave={()=>{setSF(false);setEP(null);if(online)reload();}} onClose={()=>{setSF(false);setEP(null);}}/>}
