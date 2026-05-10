@@ -12,24 +12,10 @@ async function sbPatchW(t,w,d){try{await fetch(`${SB}/rest/v1/${t}?${w}`,{method
 async function doSignIn(e,p){try{const r=await fetch(`${SB}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:SK,"Content-Type":"application/json"},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(d.access_token){TOKEN=d.access_token;return{ok:true};}return{ok:false,err:d.error_description||d.msg||"Erreur"};}catch{return{ok:false,err:"Serveur inaccessible"};}}
 async function doSignUp(e,p){try{const r=await fetch(`${SB}/auth/v1/signup`,{method:"POST",headers:{apikey:SK,"Content-Type":"application/json"},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(d.id||d.access_token){if(d.access_token)TOKEN=d.access_token;return{ok:true};}return{ok:false,err:d.error_description||d.msg||"Erreur"};}catch{return{ok:false,err:"Serveur inaccessible"};}}
 
-async function sbUpload(file){
-  const ext=file.name.split(".").pop()||"jpg";
-  const name=`${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
-  try{
-    const r=await fetch(`${SB}/storage/v1/object/properties/${name}`,{
-      method:"POST",
-      headers:{apikey:SK,Authorization:`Bearer ${TOKEN||SK}`,"Content-Type":file.type,"x-upsert":"true"},
-      body:file
-    });
-    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.message||"Upload échoué");}
-    return `${SB}/storage/v1/object/public/properties/${name}`;
-  }catch(e){console.error("Upload error:",e);return null;}
-}
-
 async function generateAIText(property){try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Tu es un expert en marketing immobilier en Côte d'Ivoire. Génère un post attractif pour les réseaux sociaux pour cet hébergement. Inclus des emojis, des hashtags, et un appel à l'action.\n\nNom: ${property.name}\nType: ${property.type}\nVille: ${property.city}, ${property.quartier}\nPrix: ${property.price} FCFA/nuit\nDescription: ${property.description}\nÉquipements: ${(property.amenities||[]).join(", ")}\n\nGénère 2 versions:\n1. Version courte (WhatsApp) - max 3 lignes\n2. Version longue (Facebook/Instagram) - max 8 lignes\n\nRéponds en JSON: {"short":"...","long":"...","hashtags":"..."}\nPas de backticks markdown.`}]})});const d=await r.json();const text=d.content?.find(c=>c.type==="text")?.text||"";try{return JSON.parse(text.trim());}catch{return{short:text.slice(0,200),long:text,hashtags:"#StaysPlace #CoteDIvoire"};}}catch{return null;}}
 
 const CITIES=["Abidjan","San Pedro","Yamoussoukro","Bouaké","Grand-Bassam","Assinie"];
-const PTYPES=["Résidence","Hôtel","Villa"];
+const PTYPES=["Résidence","Hôtel","Appartement","Villa"];
 const DEMO_PROPS=[{id:"p1",name:"Résidence Le Palmier d'Or",type:"Résidence",quartier:"Cocody",city:"Abidjan",price:35000,rating:4.7,reviews:134,sponsored:true,status:"active",image:"https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300&h=200&fit=crop",images:[],amenities:["Wi-Fi","Climatisation","Piscine"],description:"Résidence haut standing à Cocody",whatsapp:"+2250700000001",owner_id:"o1",total_views:340,total_clicks:89},{id:"p2",name:"Hôtel Atlantic Beach",type:"Hôtel",quartier:"Bardot",city:"San Pedro",price:45000,rating:4.9,reviews:156,sponsored:true,status:"active",image:"https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=300&h=200&fit=crop",images:[],amenities:["Wi-Fi","Piscine","Plage privée"],description:"Hôtel de luxe bord de mer",whatsapp:"+2250700000005",owner_id:"o2",total_views:520,total_clicks:145,boost_active:true,boost_end:"2026-04-05"},{id:"p3",name:"Villa Riviera Golf",type:"Villa",quartier:"Riviera Golf",city:"Abidjan",price:85000,rating:4.8,reviews:45,sponsored:true,status:"active",image:"https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=300&h=200&fit=crop",images:[],amenities:["Piscine privée","Chef privé"],description:"Villa de luxe",whatsapp:"+2250700000004",owner_id:"o2",total_views:210,total_clicks:67}];
 const DEMO_OWNERS=[{id:"o1",name:"Koné Ibrahim",email:"kone@email.com",phone:"+2250701111111",subscription:"premium"},{id:"o2",name:"Diallo Fatou",email:"diallo@email.com",phone:"+2250703333333",subscription:"enterprise"}];
 const DEMO_BOOKINGS=[{id:"b1",property_id:"p1",guest_name:"Jean Dupont",guest_phone:"+2250700111111",check_in:"2026-03-25",check_out:"2026-03-28",nights:3,total:105000,status:"confirmed",payment_method:"Orange Money",created_at:"2026-03-20"}];
@@ -136,118 +122,25 @@ function OwnerForm({owner,plans,onSave,onClose}){const[f,sF]=useState(owner||{na
 function PropForm({prop,owners,onSave,onClose}){
   const[f,sF]=useState(prop||{name:"",type:"Résidence",quartier:"",city:"Abidjan",price:"",description:"",whatsapp:"",amenities:[],owner_id:"",status:"pending",sponsored:false,images:[],image:""});
   const[nA,sNA]=useState("");const[nI,sNI]=useState("");const[saving,sS]=useState(false);const set=(k,v)=>sF(p=>({...p,[k]:v}));
-  const[uploading,setUploading]=useState(false);const[uploadProgress,setUploadProgress]=useState("");const[dragOver,setDragOver]=useState(false);
-
-  const uploadFiles=async(files)=>{
-    if(!files||files.length===0)return;
-    const validFiles=Array.from(files).filter(f=>f.type.startsWith("image/"));
-    if(validFiles.length===0)return;
-    setUploading(true);
-    let uploaded=0;
-    for(const file of validFiles){
-      setUploadProgress(`Upload ${uploaded+1}/${validFiles.length} — ${file.name}`);
-      const url=await sbUpload(file);
-      if(url){
-        sF(prev=>({...prev,images:[...(prev.images||[]),url],image:prev.image||url}));
-        uploaded++;
-      }else{
-        // Fallback base64 si Storage pas configuré
-        await new Promise(resolve=>{
-          const r=new FileReader();
-          r.onload=ev=>{sF(prev=>({...prev,images:[...(prev.images||[]),ev.target.result],image:prev.image||ev.target.result}));resolve();};
-          r.readAsDataURL(file);
-        });
-        uploaded++;
-      }
-    }
-    setUploading(false);setUploadProgress("");
-  };
-
-  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);uploadFiles(e.dataTransfer.files);};
-  const handleDragOver=(e)=>{e.preventDefault();setDragOver(true);};
-  const handleDragLeave=(e)=>{e.preventDefault();setDragOver(false);};
-  const setMainPhoto=(img)=>set("image",img);
-  const movePhoto=(from,to)=>{const imgs=[...(f.images||[])];const[moved]=imgs.splice(from,1);imgs.splice(to,0,moved);set("images",imgs);};
-
-  const save=async()=>{sS(true);const d={name:f.name,type:f.type,quartier:f.quartier,city:f.city,price:Number(f.price),description:f.description,whatsapp:f.whatsapp,amenities:f.amenities,owner_id:f.owner_id||null,status:f.status,sponsored:f.sponsored,images:f.images,image:f.image||f.images?.[0]||""};if(prop?.id)await sbPatch("properties",prop.id,d);else await sbPost("properties",d);sS(false);onSave();};
+  const save=async()=>{sS(true);const d={name:f.name,type:f.type,quartier:f.quartier,city:f.city,price:Number(f.price),description:f.description,whatsapp:f.whatsapp,amenities:f.amenities,owner_id:f.owner_id||null,status:f.status,sponsored:f.sponsored,images:f.images,image:f.image||f.images?.[0]||"",room_type:f.room_type||"standard",videos:f.videos||[]};if(prop?.id)await sbPatch("properties",prop.id,d);else await sbPost("properties",d);sS(false);onSave();};
   return<div className="modal-overlay" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
     <div className="flex-between" style={{marginBottom:20}}><h2 style={{fontSize:20,fontWeight:800}}>{prop?"Modifier":"Nouvel hébergement"}</h2><button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"var(--light)"}}>✕</button></div>
     <div style={{marginBottom:12}}><label className="label">Propriétaire</label><select className="input" value={f.owner_id||""} onChange={e=>set("owner_id",e.target.value)} style={{cursor:"pointer"}}><option value="">— Choisir —</option>{owners.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
     <div className="grid-2" style={{marginBottom:12}}>
       <div style={{gridColumn:"1/-1"}}><label className="label">Nom</label><input className="input" value={f.name} onChange={e=>set("name",e.target.value)}/></div>
       <div><label className="label">Type</label><select className="input" value={f.type} onChange={e=>set("type",e.target.value)}>{PTYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-      <div><label className="label">Ville</label><select className="input" value={f.city} onChange={e=>set("city",e.target.value)}>{CITIES.map(c=><option key={c}>{c}</option>)}</select></div>
-      <div><label className="label">Quartier</label><input className="input" value={f.quartier||""} onChange={e=>set("quartier",e.target.value)}/></div>
+      <div><label className="label">Ville</label><select className="input" value={f.city} onChange={e=>{set("city",e.target.value);set("quartier","");}}>{CITIES.map(c=><option key={c}>{c}</option>)}</select></div>
+      <div><label className="label">Quartier</label><input className="input" value={f.quartier||""} onChange={e=>set("quartier",e.target.value)} list="quartier-list"/>{typeof document!=="undefined"&&<datalist id="quartier-list">{(owners.__quartiers||[]).filter(q=>q.city===f.city).map(q=><option key={q.id} value={q.name}/>)}</datalist>}</div>
+      <div><label className="label">Type logement</label><select className="input" value={f.room_type||"standard"} onChange={e=>set("room_type",e.target.value)}><option value="standard">Standard</option>{(owners.__roomTypes||[]).map(rt=><option key={rt.id} value={rt.name}>{rt.name}</option>)}</select></div>
       <div><label className="label">Prix/nuit</label><input className="input" type="number" value={f.price} onChange={e=>set("price",e.target.value)}/></div>
       <div><label className="label">WhatsApp</label><input className="input" value={f.whatsapp||""} onChange={e=>set("whatsapp",e.target.value)}/></div>
       <div><label className="label">Statut</label><select className="input" value={f.status} onChange={e=>set("status",e.target.value)}><option value="active">Actif</option><option value="pending">En attente</option><option value="inactive">Inactif</option></select></div>
     </div>
     <div style={{marginBottom:12}}><label className="label">Description</label><textarea className="input" value={f.description||""} onChange={e=>set("description",e.target.value)} rows={3} style={{resize:"vertical"}}/></div>
     <div style={{marginBottom:12}}><label className="label">Équipements</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>{(f.amenities||[]).map((a,i)=><span key={i} className="tag" style={{background:"#f0fdf4",color:"#166534",border:"1px solid #bbf7d0"}}>{a}<button onClick={()=>set("amenities",f.amenities.filter((_,x)=>x!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",padding:0,marginLeft:4}}>×</button></span>)}</div><div className="flex-gap"><input className="input" value={nA} onChange={e=>sNA(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&nA.trim()){e.preventDefault();set("amenities",[...(f.amenities||[]),nA.trim()]);sNA("");}}} placeholder="Wi-Fi, Piscine..." style={{flex:1}}/><button className="btn-secondary btn-sm" onClick={()=>{if(nA.trim()){set("amenities",[...(f.amenities||[]),nA.trim()]);sNA("");}}}>+</button></div></div>
-
-    {/* ── SECTION PHOTOS AMÉLIORÉE ── */}
-    <div style={{marginBottom:16}}>
-      <div className="flex-between" style={{marginBottom:8}}>
-        <label className="label" style={{margin:0}}>Photos ({(f.images||[]).length})</label>
-        {f.image&&<span style={{fontSize:10,color:"var(--accent)",fontWeight:600}}>★ = photo principale</span>}
-      </div>
-
-      {/* Zone drag & drop */}
-      <div
-        onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
-        style={{
-          border:dragOver?"2px dashed var(--accent)":"2px dashed #cbd5e1",
-          borderRadius:14,background:dragOver?"rgba(255,107,0,.04)":"#fafbfc",
-          padding:(f.images||[]).length>0?"12px":"32px 16px",
-          transition:"all .2s",marginBottom:10,position:"relative"
-        }}
-      >
-        {uploading&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.85)",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:5}}>
-          <div style={{width:40,height:40,border:"3px solid #e2e8f0",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-          <div style={{fontSize:12,fontWeight:600,color:"var(--accent)",marginTop:10}}>{uploadProgress}</div>
-        </div>}
-
-        {/* Grille de photos */}
-        {(f.images||[]).length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:8,marginBottom:10}}>
-          {(f.images||[]).map((img,i)=><div key={i} style={{
-            position:"relative",aspectRatio:"4/3",borderRadius:10,overflow:"hidden",
-            border:f.image===img?"3px solid var(--accent)":"2px solid transparent",
-            boxShadow:f.image===img?"0 0 0 2px rgba(255,107,0,.2)":"none",
-            cursor:"pointer",transition:"all .15s"
-          }} onClick={()=>setMainPhoto(img)}>
-            <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy"/>
-            {/* Badge photo principale */}
-            {f.image===img&&<div style={{position:"absolute",top:4,left:4,background:"var(--accent)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:6}}>★ PRINCIPALE</div>}
-            {/* Numéro */}
-            <div style={{position:"absolute",bottom:4,left:4,background:"rgba(0,0,0,.6)",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:4}}>{i+1}</div>
-            {/* Actions */}
-            <div style={{position:"absolute",top:4,right:4,display:"flex",gap:3}}>
-              {i>0&&<button onClick={e=>{e.stopPropagation();movePhoto(i,i-1);}} style={{background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Déplacer à gauche">←</button>}
-              {i<(f.images||[]).length-1&&<button onClick={e=>{e.stopPropagation();movePhoto(i,i+1);}} style={{background:"rgba(0,0,0,.6)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Déplacer à droite">→</button>}
-              <button onClick={e=>{e.stopPropagation();const imgs=f.images.filter((_,x)=>x!==i);set("images",imgs);if(f.image===f.images[i])set("image",imgs[0]||"");}} style={{background:"rgba(220,38,38,.85)",color:"#fff",border:"none",borderRadius:4,width:20,height:20,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} title="Supprimer">×</button>
-            </div>
-          </div>)}
-        </div>}
-
-        {/* Zone d'ajout */}
-        <label style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:uploading?"wait":"pointer",padding:(f.images||[]).length>0?"8px 0":"0",gap:6}}>
-          <div style={{fontSize:28,lineHeight:1}}>📸</div>
-          <div style={{fontSize:13,fontWeight:700,color:"var(--accent)"}}>Cliquer ou glisser-déposer des photos</div>
-          <div style={{fontSize:11,color:"var(--light)"}}>JPG, PNG, WebP — plusieurs fichiers autorisés</div>
-          <input type="file" accept="image/*" multiple style={{display:"none"}} disabled={uploading} onChange={e=>{uploadFiles(e.target.files);e.target.value="";}}/>
-        </label>
-      </div>
-
-      {/* Ajout par URL */}
-      <div className="flex-gap">
-        <input className="input" value={nI} onChange={e=>sNI(e.target.value)} placeholder="Ou coller une URL d'image..." style={{flex:1}} onKeyDown={e=>{if(e.key==="Enter"&&nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}/>
-        <button className="btn-secondary btn-sm" onClick={()=>{if(nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}>+ URL</button>
-      </div>
-      {(f.images||[]).length>0&&<div style={{fontSize:11,color:"var(--light)",marginTop:6}}>💡 Cliquez sur une photo pour la définir comme principale</div>}
-    </div>
-
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}><button className="btn-secondary" onClick={onClose}>Annuler</button><button className="btn-primary" onClick={save} disabled={saving||uploading}>{saving?"Enregistrement...":(uploading?"Upload en cours...":prop?"Enregistrer":"Créer")}</button></div>
+    <div style={{marginBottom:16}}><label className="label">Photos</label><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>{(f.images||[]).map((img,i)=><div key={i} style={{position:"relative",width:80,height:60,borderRadius:8,overflow:"hidden",border:f.image===img?"2px solid var(--accent)":"1px solid var(--border)"}}><img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/><button onClick={()=>{const imgs=f.images.filter((_,x)=>x!==i);set("images",imgs);if(f.image===f.images[i])set("image",imgs[0]||"");}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.7)",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button></div>)}<label style={{width:80,height:60,borderRadius:8,border:"2px dashed #cbd5e1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#f8fafc",fontSize:10,color:"var(--accent)",fontWeight:700}}>+ PHOTO<input type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>{Array.from(e.target.files||[]).forEach(file=>{const r=new FileReader();r.onload=ev=>{sF(prev=>({...prev,images:[...(prev.images||[]),ev.target.result],image:prev.image||ev.target.result}));};r.readAsDataURL(file);});e.target.value="";}}/></label></div><div className="flex-gap"><input className="input" value={nI} onChange={e=>sNI(e.target.value)} placeholder="URL de l'image..." style={{flex:1}}/><button className="btn-secondary btn-sm" onClick={()=>{if(nI.trim()){const imgs=[...(f.images||[]),nI.trim()];set("images",imgs);if(!f.image)set("image",nI.trim());sNI("");}}}>+</button></div></div>
+    <div style={{marginBottom:16}}><label className="label">Vidéos (liens YouTube, Facebook, Instagram, TikTok)</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>{(f.videos||[]).map((v,i)=><div key={i} className="flex-gap" style={{background:"#f0f9ff",borderRadius:8,padding:"5px 10px",border:"1px solid #bae6fd",fontSize:12}}><span style={{fontWeight:600,color:"var(--blue)",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"inline-block"}}>{v.includes("youtube")?"▶ YouTube":v.includes("facebook")?"📘 Facebook":v.includes("instagram")?"📷 Instagram":v.includes("tiktok")?"🎵 TikTok":"🎬 Vidéo"}</span><button onClick={()=>sF(prev=>({...prev,videos:prev.videos.filter((_,x)=>x!==i)}))} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",padding:0}}>×</button></div>)}</div><div className="flex-gap"><input className="input" id="videoUrl" placeholder="Collez le lien YouTube, Facebook, Instagram ou TikTok..." style={{flex:1}}/><button className="btn-secondary btn-sm" onClick={()=>{const inp=document.getElementById("videoUrl");const url=inp?.value?.trim();if(url){sF(prev=>({...prev,videos:[...(prev.videos||[]),url]}));inp.value="";}}}>+ Vidéo</button></div></div>
+    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:20}}><button className="btn-secondary" onClick={onClose}>Annuler</button><button className="btn-primary" onClick={save} disabled={saving}>{saving?"...":prop?"Enregistrer":"Créer"}</button></div>
   </div></div>;
 }
 
@@ -259,7 +152,6 @@ export default function Admin(){
   const[bookings,setBookings]=useState(DEMO_BOOKINGS);const[plans,setPlans]=useState(DEMO_PLANS);
   const[boosts,setBoosts]=useState([]);const[boostTypes,setBT]=useState(DEMO_BTYPES);
   const[settings,setSettings]=useState({phone:"+225 07 00 00 00 00",email:"contact@staysplace.com",whatsapp:"+22507000000",address:"Abidjan, Côte d'Ivoire",tagline:"N°1 en CI"});
-  const[quartiers,setQuartiers]=useState([]);const[newQ,setNewQ]=useState({name:"",city:"Abidjan"});const[savingQ,setSQ]=useState(false);
   const[online,setOnline]=useState(false);
   const[showForm,setSF]=useState(false);const[editProp,setEP]=useState(null);
   const[showOF,setSOF]=useState(false);const[editOwner,setEO]=useState(null);
@@ -269,6 +161,9 @@ export default function Admin(){
   const[boostProp,setBoostProp]=useState(null);const[selBoostType,setSelBT]=useState(null);
   const[editBT,setEditBT]=useState(null);const[btForm,setBTForm]=useState(null);
   const[aiProp,setAiProp]=useState(null);const[aiResult,setAiResult]=useState(null);const[aiLoading,setAiLoading]=useState(false);
+  const[quartiers,setQuartiers]=useState([]);const[roomTypes,setRoomTypes]=useState([]);const[rooms,setRooms]=useState([]);
+  const[showQF,setShowQF]=useState(false);const[qForm,setQForm]=useState({name:"",city:"Abidjan"});
+  const[showRTF,setShowRTF]=useState(false);const[rtForm,setRTForm]=useState({name:"",sort_order:0});
 
   const reload=useCallback(async()=>{
     const p=await sbGet("properties","order=sponsored.desc,rating.desc");
@@ -279,7 +174,9 @@ export default function Admin(){
       const bo=await sbGet("boosts","order=created_at.desc");if(bo)setBoosts(bo);
       const bt=await sbGet("boost_types","active=eq.true&order=sort_order.asc");if(bt&&bt.length>0)setBT(bt);
       const s=await sbGet("site_settings","");if(s){const m={};s.forEach(x=>{m[x.key]=x.value;});setSettings(m);}
-      const q=await sbGet("quartiers","order=city.asc,name.asc");if(q&&Array.isArray(q))setQuartiers(q);
+      const q=await sbGet("quartiers","order=city.asc,name.asc");if(q)setQuartiers(q);
+      const rt=await sbGet("room_types","order=sort_order.asc");if(rt)setRoomTypes(rt);
+      const rm=await sbGet("rooms","order=price.asc");if(rm)setRooms(rm);
     }
   },[]);
 
@@ -299,7 +196,7 @@ export default function Admin(){
 
   if(!authed)return<Login onLogin={handleLogin}/>;
 
-  const nav=[{id:"dashboard",l:"Tableau de bord",i:"📊"},{id:"properties",l:"Hébergements",i:"🏨"},{id:"owners",l:"Propriétaires",i:"👥"},{id:"boosts",l:"Boosts",i:"🚀"},{id:"tops",l:"Tops & Stats",i:"🏆"},{id:"reports",l:"Rapports",i:"📈"},{id:"siteReport",l:"Évolution",i:"📉"},{id:"bookings",l:"Réservations",i:"📅"},{id:"ai",l:"IA Texte",i:"🤖"},{id:"subscriptions",l:"Monétisation",i:"💰"},{id:"settings",l:"Paramètres",i:"⚙️"}];
+  const nav=[{id:"dashboard",l:"Tableau de bord",i:"📊"},{id:"properties",l:"Hébergements",i:"🏨"},{id:"rooms",l:"Chambres",i:"🛏️"},{id:"owners",l:"Propriétaires",i:"👥"},{id:"cities",l:"Villes & Quartiers",i:"🏙️"},{id:"boosts",l:"Boosts",i:"🚀"},{id:"tops",l:"Tops & Stats",i:"🏆"},{id:"reports",l:"Rapports",i:"📈"},{id:"siteReport",l:"Évolution",i:"📉"},{id:"bookings",l:"Réservations",i:"📅"},{id:"ai",l:"IA Texte",i:"🤖"},{id:"subscriptions",l:"Monétisation",i:"💰"},{id:"settings",l:"Paramètres",i:"⚙️"}];
 
   return<div style={{display:"flex",minHeight:"100vh"}}><style>{CSS}</style>
     <div className={`overlay${sideOpen?" open":""}`} onClick={()=>setSO(false)}/>
@@ -425,11 +322,39 @@ export default function Admin(){
         </div>;})}</div>
       </div>}
 
+      {/* Cities & Quartiers */}
+      {page==="cities"&&<div><div className="flex-between" style={{marginBottom:20}}><div><h1 className="page-title">🏙️ Villes & Quartiers</h1><p className="page-sub">{quartiers.length} quartiers dans {[...new Set(quartiers.map(q=>q.city))].length} villes</p></div></div>
+        <div className="grid-2" style={{marginBottom:24}}>
+          {/* Room Types */}
+          <div className="card"><div className="flex-between" style={{marginBottom:14}}><h3 style={{fontSize:16,fontWeight:700}}>🏠 Types de logement</h3><button className="btn-primary btn-sm" onClick={()=>setShowRTF(true)}>+ Ajouter</button></div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{roomTypes.map(rt=><div key={rt.id} className="flex-gap" style={{background:"#f8fafc",borderRadius:8,padding:"6px 12px",border:"1px solid var(--border)"}}><span style={{fontSize:13,fontWeight:600}}>{rt.name}</span><button className="btn-icon btn-icon-danger" style={{padding:"2px 4px",fontSize:10}} onClick={async()=>{await sbDel("room_types",rt.id);if(online)reload();else setRoomTypes(rts=>rts.filter(x=>x.id!==rt.id));}}>×</button></div>)}</div>
+          {showRTF&&<div style={{marginTop:14,background:"#f8fafc",borderRadius:10,padding:14,border:"1px solid var(--border)"}}><div className="flex-gap"><input className="input" value={rtForm.name} onChange={e=>setRTForm(f=>({...f,name:e.target.value}))} placeholder="Ex: Quatre chambres salon" style={{flex:1}}/><button className="btn-primary btn-sm" onClick={async()=>{if(!rtForm.name.trim())return;await sbPost("room_types",{name:rtForm.name.trim(),sort_order:roomTypes.length+1});setRTForm({name:"",sort_order:0});setShowRTF(false);if(online)reload();}}>Créer</button><button className="btn-secondary btn-sm" onClick={()=>setShowRTF(false)}>×</button></div></div>}
+          </div>
+
+          {/* Add quartier form */}
+          <div className="card"><div className="flex-between" style={{marginBottom:14}}><h3 style={{fontSize:16,fontWeight:700}}>➕ Ajouter un quartier</h3></div>
+          <div style={{display:"flex",gap:10,marginBottom:10}}><div style={{flex:1}}><label className="label">Ville</label><select className="input" value={qForm.city} onChange={e=>setQForm(f=>({...f,city:e.target.value}))}>{CITIES.map(c=><option key={c}>{c}</option>)}</select></div><div style={{flex:1}}><label className="label">Nom du quartier</label><input className="input" value={qForm.name} onChange={e=>setQForm(f=>({...f,name:e.target.value}))} placeholder="Ex: Marcory"/></div></div>
+          <button className="btn-primary btn-sm" onClick={async()=>{if(!qForm.name.trim())return;await sbPost("quartiers",{name:qForm.name.trim(),city:qForm.city});setQForm({name:"",city:qForm.city});if(online)reload();}}>Ajouter le quartier</button>
+          </div>
+        </div>
+
+        {/* List by city */}
+        {CITIES.map(city=>{const cq=quartiers.filter(q=>q.city===city);if(cq.length===0)return null;return<div key={city} style={{marginBottom:20}}><h3 style={{fontSize:15,fontWeight:700,marginBottom:8}}>{city} ({cq.length} quartiers)</h3><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{cq.map(q=><div key={q.id} className="flex-gap" style={{background:"white",borderRadius:8,padding:"6px 14px",border:"1px solid var(--border)",fontSize:13}}><span style={{fontWeight:600}}>{q.name}</span><button style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontSize:12,padding:0}} onClick={async()=>{await sbDel("quartiers",q.id);if(online)reload();else setQuartiers(qs=>qs.filter(x=>x.id!==q.id));}}>🗑️</button></div>)}</div></div>;})}
+        {quartiers.length===0&&<div className="card" style={{textAlign:"center",padding:40,color:"var(--light)"}}>Aucun quartier. Ajoutez-en avec le formulaire ci-dessus.</div>}
+      </div>}
+
+      {/* Rooms management */}
+      {page==="rooms"&&<div><div className="flex-between" style={{marginBottom:20}}><div><h1 className="page-title">🛏️ Chambres</h1><p className="page-sub">Gérez les chambres par hébergement</p></div></div>
+        {properties.filter(p=>p.status==="active").map(prop=>{const propRooms=rooms.filter(r=>r.property_id===prop.id);return<div key={prop.id} className="card" style={{marginBottom:14}}><div className="flex-between" style={{marginBottom:10}}><div className="flex-gap">{prop.image&&<img src={prop.image} alt="" style={{width:40,height:30,borderRadius:6,objectFit:"cover"}}/>}<div><div style={{fontWeight:700}}>{prop.name}</div><div style={{fontSize:12,color:"var(--light)"}}>{prop.city} • {prop.quartier}</div></div></div><button className="btn-primary btn-sm" onClick={async()=>{const name=prompt("Nom de la chambre (ex: Chambre Deluxe)");if(!name)return;const price=prompt("Prix par nuit (FCFA)");if(!price)return;const roomType=prompt("Type (Studio, Chambre standard, Suite...)") || "Chambre standard";const capacity=prompt("Capacité (nombre de personnes)") || "2";await sbPost("rooms",{property_id:prop.id,name,price:Number(price),room_type:roomType,capacity:Number(capacity),amenities:[],images:[],available:true});if(online)reload();}}>+ Chambre</button></div>
+          {propRooms.length>0?<div className="card" style={{padding:0,overflow:"auto"}}><table className="table"><thead><tr><th>Chambre</th><th>Type</th><th>Prix</th><th>Capacité</th><th>Actions</th></tr></thead><tbody>{propRooms.map(r=><tr key={r.id}><td style={{fontWeight:600}}>{r.name}</td><td><span className="tag" style={{background:"#f0f9ff",color:"var(--blue)"}}>{r.room_type||"Standard"}</span></td><td style={{fontWeight:700,color:"var(--green)"}}>{fmt(r.price)}</td><td>{r.capacity} pers.</td><td><div className="flex-gap"><button className="btn-icon" onClick={async()=>{const name=prompt("Nom",r.name);if(!name)return;const price=prompt("Prix",r.price);if(!price)return;const roomType=prompt("Type",r.room_type)||r.room_type;const capacity=prompt("Capacité",r.capacity)||r.capacity;await sbPatch("rooms",r.id,{name,price:Number(price),room_type:roomType,capacity:Number(capacity)});if(online)reload();}}>✏️</button><button className="btn-icon btn-icon-danger" onClick={async()=>{await sbDel("rooms",r.id);if(online)reload();else setRooms(rs=>rs.filter(x=>x.id!==r.id));}}>🗑️</button></div></td></tr>)}</tbody></table></div>:<div style={{color:"var(--light)",fontSize:13,padding:"8px 0"}}>Aucune chambre ajoutée</div>}
+        </div>;})}
+      </div>}
+
       {/* Settings */}
-      {page==="settings"&&<div><h1 className="page-title" style={{marginBottom:20}}>⚙️ Paramètres</h1><div style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"flex-start"}}><div className="card" style={{maxWidth:500,flex:"1 1 300px"}}><div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Informations du site</div>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label className="label">{l}</label><input className="input" value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))}/></div>)}<button className="btn-primary" onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS}>{savingS?"...":"Sauvegarder"}</button></div><div className="card" style={{flex:"1 1 320px"}}><div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Quartiers / Communes</div><div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}><select className="input" style={{flex:"0 0 130px"}} value={newQ.city} onChange={e=>setNewQ(q=>({...q,city:e.target.value}))}><option>Abidjan</option><option>San Pedro</option><option>Yamoussoukro</option><option>Bouaké</option><option>Grand-Bassam</option><option>Assinie</option></select><input className="input" style={{flex:1,minWidth:120}} placeholder="Nom du quartier" value={newQ.name} onChange={e=>setNewQ(q=>({...q,name:e.target.value}))}/><button className="btn-primary" disabled={!newQ.name||savingQ} onClick={async()=>{setSQ(true);await sbPost("quartiers",{name:newQ.name.trim(),city:newQ.city});setNewQ(q=>({...q,name:""}));const q=await sbGet("quartiers","order=city.asc,name.asc");if(q)setQuartiers(q);setSQ(false);}}>{savingQ?"...":"+"}</button></div><div style={{maxHeight:320,overflowY:"auto"}}>{["Abidjan","San Pedro","Yamoussoukro","Bouaké","Grand-Bassam","Assinie"].map(city=>{const cq=quartiers.filter(q=>q.city===city);if(!cq.length)return null;return<div key={city} style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>{city}</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{cq.map(q=><span key={q.id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f1f5f9",borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600}}>{q.name}<button onClick={async()=>{await sbDel("quartiers",q.id);setQuartiers(qs=>qs.filter(x=>x.id!==q.id));}} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontSize:14,lineHeight:1,padding:0}}>×</button></span>)}</div></div>;})} {quartiers.length===0&&<div style={{color:"var(--muted)",fontSize:13,textAlign:"center",padding:20}}>Aucun quartier ajouté</div>}</div></div></div></div>}
+      {page==="settings"&&<div><h1 className="page-title" style={{marginBottom:20}}>⚙️ Paramètres</h1><div className="card" style={{maxWidth:500}}>{[{k:"phone",l:"Téléphone"},{k:"email",l:"Email"},{k:"whatsapp",l:"WhatsApp"},{k:"address",l:"Adresse"},{k:"tagline",l:"Slogan"}].map(({k,l})=><div key={k} style={{marginBottom:14}}><label className="label">{l}</label><input className="input" value={settings[k]||""} onChange={e=>setSettings(s=>({...s,[k]:e.target.value}))}/></div>)}<button className="btn-primary" onClick={async()=>{setSS(true);for(const[k,v] of Object.entries(settings)){await sbPatchW("site_settings",`key=eq.${k}`,{value:v});}setSS(false);}} disabled={savingS}>{savingS?"...":"Sauvegarder"}</button></div></div>}
     </main>
 
-    {showForm&&<PropForm prop={editProp} owners={owners} onSave={()=>{setSF(false);setEP(null);if(online)reload();}} onClose={()=>{setSF(false);setEP(null);}}/>}
+    {showForm&&<PropForm prop={editProp} owners={Object.assign([...owners],{__quartiers:quartiers,__roomTypes:roomTypes})} onSave={()=>{setSF(false);setEP(null);if(online)reload();}} onClose={()=>{setSF(false);setEP(null);}}/>}
 
     {/* Boost Modal */}
     {boostProp&&<div className="modal-overlay" onClick={()=>setBoostProp(null)}><div className="modal" style={{maxWidth:500}} onClick={e=>e.stopPropagation()}>
